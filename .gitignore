@@ -1,0 +1,7 @@
+build/
+*.bin
+*.iconset/
+AppIcon.icns
+.DS_Store
+*.xcuserdatad/
+swiftc-*.log
