@@ -1502,7 +1502,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 applyDynamicTitle(monitor: monitor)
             }
-            button.imagePosition = .imageLeading
+            // 宽体模式无文字标题：imageOnly 可避免按钮被 title 行高撑高（撑高会导致图标整体下移、底部被菜单栏裁切）
+            button.imagePosition = settings.iconMode == .wideBar ? .imageOnly : .imageLeading
         }
     }
 
@@ -1881,8 +1882,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         // 电池壳（宽体圆角矩形，玻璃感：深色半透明底 + 细描边 + 顶部柔和高光），垂直居中于 22pt 画布
-        let shellRect = NSRect(x: 3.5, y: 4.5, width: 39.0, height: 13.0)
-        let shell = NSBezierPath(roundedRect: shellRect, xRadius: 3.2, yRadius: 3.2)
+        let shellRect = NSRect(x: 3.5, y: 3.0, width: 39.0, height: 16.0)
+        let shell = NSBezierPath(roundedRect: shellRect, xRadius: 3.6, yRadius: 3.6)
         NSColor(calibratedWhite: 0.12, alpha: 0.55).setFill()
         shell.fill()
         NSColor(calibratedWhite: 0.55, alpha: 0.5).setStroke()
@@ -1895,7 +1896,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shellHi.lineWidth = 0.8
         shellHi.stroke()
         // 正极端子（右侧凸头，同色系）
-        let terminalRect = NSRect(x: 42.9, y: 8.0, width: 2.0, height: 6.0)
+        let terminalRect = NSRect(x: 42.9, y: 7.0, width: 2.0, height: 8.0)
         let terminal = NSBezierPath(roundedRect: terminalRect, xRadius: 0.9, yRadius: 0.9)
         NSColor(calibratedWhite: 0.12, alpha: 0.55).setFill()
         terminal.fill()
@@ -1906,7 +1907,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let innerRect = NSRect(x: shellRect.minX + 2.2, y: shellRect.minY + 2.2,
                                width: shellRect.width - 4.4, height: shellRect.height - 4.4)
         // 空槽底色：整壳铺一层电量等级色 22% 基底，缩小色块与空槽亮度差，避免色块右缘被误读为竖线
-        let slot = NSBezierPath(roundedRect: innerRect, xRadius: 1.4, yRadius: 1.4)
+        let slot = NSBezierPath(roundedRect: innerRect, xRadius: 1.7, yRadius: 1.7)
         baseColor.withAlphaComponent(0.22).setFill()
         slot.fill()
         // 每 10% 淡分段格线
@@ -1926,7 +1927,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let filledWidth = ratio > 0 ? max(innerRect.width * ratio, 1.4) : 0.0
         let filledRect = NSRect(x: innerRect.minX, y: innerRect.minY, width: filledWidth, height: innerRect.height)
         if filledRect.width > 0 {
-            let path = NSBezierPath(roundedRect: filledRect, xRadius: 1.4, yRadius: 1.4)
+            let path = NSBezierPath(roundedRect: filledRect, xRadius: 1.7, yRadius: 1.7)
             let top = baseColor.blended(withFraction: 0.38, of: NSColor.white) ?? baseColor
             let bottom = baseColor.withAlphaComponent(0.82)
             if let grad = NSGradient(colors: [top, bottom]) {
@@ -1955,7 +1956,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 电池内部百分比数字（白色粗体 monospaced，半透明深色阴影）
         // 水平中心跟随填充色块中心（clamp 在壳内安全区），垂直居中于壳中心；用 CoreText ink 边界校正字形可见中心
         let pctText = "\(power.batteryPercent)%" as NSString
-        let numFont = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .bold)
+        let numFont = NSFont.monospacedSystemFont(ofSize: 12.0, weight: .bold)
         let numShadow = NSShadow()
         numShadow.shadowColor = NSColor.black.withAlphaComponent(0.45)
         numShadow.shadowBlurRadius = 1.2
@@ -1999,7 +2000,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let stroke: CGFloat = 1.8
             let plugGap = symbolGap
             let bodyW: CGFloat = 6.0
-            let bodyH: CGFloat = 8.0
+            let bodyH: CGFloat = 9.0
             let radius: CGFloat = 1.3
             let cx = terminalVisualRight + plugGap + bodyW / 2
             let cyBody: CGFloat = shellRect.midY + 0.4
