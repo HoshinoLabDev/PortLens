@@ -28,11 +28,16 @@ enum Diagnostics {
             }
         }
 
+        // USB4 / Thunderbolt 对端设备（PCIe 隧道）：这类设备不产生 USB 设备树节点，
+        // 必须从 IOPortTransportStateCIO 读取，否则 USB4 硬盘盒/扩展坞会被误报"无设备连接"。
+        let usb4Peers = USB4PeerReader.readPeers()
+
         var cards: [PortCardModel] = []
         for (index, port) in ports.enumerated() {
             let portDevices = byPort[port.portNumber] ?? []
             let card = buildCard(for: port, index: index, devices: portDevices, power: power, fabric: fabric,
-                                 displays: displays, chargers: chargers)
+                                 displays: displays, chargers: chargers,
+                                 usb4Peer: usb4Peers[port.portNumber])
             cards.append(card)
         }
 
@@ -96,7 +101,8 @@ enum Diagnostics {
     // MARK: - 单端口卡片
 
     private static func buildCard(for port: USBMonitor.RawPort, index: Int, devices: [USBDeviceInfo], power: PowerState, fabric: ThunderboltFabric,
-                                  displays: [(portNumber: Int?, device: ConnectedDevice)], chargers: [Int: ChargerIdentity]) -> PortCardModel {
+                                  displays: [(portNumber: Int?, device: ConnectedDevice)], chargers: [Int: ChargerIdentity],
+                                  usb4Peer: USB4Peer? = nil) -> PortCardModel {
         let label = port.isMagSafe ? "MagSafe" : "TypeC \(port.portNumber)"
         let portBadge = port.isMagSafe ? "MS" : (port.portType == "SS" ? "SS" : "HS")
 
@@ -107,6 +113,11 @@ enum Diagnostics {
 
         // 空端口（USB4/仅供电线缆可能无 USB 设备，但仍需读取 e-marker 线缆信息）
         guard !devices.isEmpty else {
+            // USB4 / Thunderbolt 对端设备（PCIe 隧道）：USB 设备树完全为空，但端口确有设备接入
+            // （USB4 NVMe 硬盘盒、USB4 扩展坞等）。此前会直接落入"无设备连接"，用户误以为识别失败。
+            if let peer = usb4Peer {
+                return buildUSB4Card(port: port, index: index, peer: peer, power: power, fabric: fabric)
+            }
             // 纯供电口：该口识别到充电器（SOP）时仍显示"充电器已连接"，避免 TypeC 1 空设备但插着充电器被误报"无设备"
             if let ci = chargers[port.portNumber] {
                 return buildChargerCard(power: power, index: index, portNumber: port.portNumber, chargerIdentity: ci)
@@ -361,6 +372,74 @@ enum Diagnostics {
     }
 
     /// 纯 USB-C 充电器兜底卡片：外部电源来自 USB-C（非 MagSafe）且设备树为空时的充电器归属
+    /// USB4 / Thunderbolt 对端设备卡：该端口走 PCIe 隧道，USB 设备树为空（硬盘盒、扩展坞常见）。
+    /// 判定依据为 IOPortTransportStateCIO 节点，不臆测品牌，仅呈现对端身份 + 隧道协议 + 速率。
+    private static func buildUSB4Card(port: USBMonitor.RawPort, index: Int, peer: USB4Peer, power: PowerState,
+                                      fabric: ThunderboltFabric) -> PortCardModel {
+        var cableLine: String?
+        var cableSpec: String?
+        var trustWarning: String?
+        var certification: String?
+        var certificationManufacturer: String?
+        var xidRaw: UInt16?
+        var cableVDO: UInt32?
+        if let cable = readCableInfo(for: port) {
+            cableLine = cable.lineDescription
+            cableSpec = cable.specLine
+            trustWarning = cable.trustWarning
+            certification = cable.certification
+            certificationManufacturer = cable.certificationManufacturer
+            xidRaw = cable.xid
+            cableVDO = cable.rawVDOCable
+        }
+
+        // 数据行：隧道协议 + USB4 代数 + 速率，若已挂载外置卷则附上（证明存储层已打通）
+        var dataLine = peer.tunnelSummary
+        if let volumes = USB4PeerReader.externalVolumesLine() {
+            dataLine += " · \(volumes)"
+        }
+
+        let connected = [
+            ConnectedDevice(
+                id: peer.id,
+                kind: .storage,
+                brand: peer.vendorName.isEmpty ? nil : peer.vendorName,
+                model: peer.modelName.isEmpty ? nil : peer.modelName,
+                detail: peer.techDetail,
+                icon: "externaldrive.fill",
+                hops: 0,
+                vid: peer.vendorID.map { UInt16(truncatingIfNeeded: $0) },
+                pid: peer.modelID.map { UInt16(truncatingIfNeeded: $0) }
+            )
+        ]
+
+        var card = PortCardModel(
+            id: index, portIndex: index, portNumber: port.portNumber,
+            portType: port.portType == "SS" ? "SS" : "HS",
+            devices: [],
+            headline: "Thunderbolt / USB4 · \(peer.displayName)",
+            headlineIcon: "bolt.fill", tint: .purple,
+            chargingBanner: nil, chargingSub: nil,
+            dataLine: dataLine, cableLine: cableLine, cableSpec: cableSpec,
+            deviceLine: peer.displayName,
+            pdoList: nil, faultText: nil, isConnected: true, isMagSafe: false
+        )
+        card.connectedDevices = connected
+        card.trustWarning = trustWarning
+        card.certification = certification
+        card.certificationManufacturer = certificationManufacturer
+        card.xidRaw = xidRaw
+        card.cableVDO = cableVDO
+        card.fabric = fabric.detected ? fabric : nil
+        // 活跃传输：Thunderbolt 链路 + 已建隧道协议，去重保序
+        var transports: [String] = ["Thunderbolt"]
+        for t in peer.activeTransports where !transports.contains(t) { transports.append(t) }
+        card.activeTransports = transports
+        card.techDetailLine = peer.techDetail
+        return card
+    }
+
+    /// 纯 USB-C 充电器兜底卡片：外部电源来自 USB-C（非 MagSafe）且设备树为空时的充电器归属
     private static func buildChargerCard(power: PowerState, index: Int, portNumber: Int, chargerIdentity: ChargerIdentity?) -> PortCardModel {
         let watts = power.adapterWatts > 1 ? String(format: "%.0fW", power.adapterWatts) : "USB 电源"
         let charging = chargingInfo(power: power, portLabel: "TypeC")
@@ -421,7 +500,7 @@ enum Diagnostics {
 
     /// 展示排序：扩展坞/集线器 → 显示器 → 手机/平板 → 充电器 → 电脑 → 外设 → 未知
     private static func sortedDeviceList(_ items: [ConnectedDevice]) -> [ConnectedDevice] {
-        let order: [DeviceKind] = [.dock, .hub, .display, .phone, .tablet, .charger, .computer, .peripheral, .unknown]
+        let order: [DeviceKind] = [.dock, .hub, .display, .phone, .tablet, .charger, .computer, .storage, .peripheral, .unknown]
         return items.sorted { a, b in
             let ia = order.firstIndex(of: a.kind) ?? order.count
             let ib = order.firstIndex(of: b.kind) ?? order.count

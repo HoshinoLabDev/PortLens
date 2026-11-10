@@ -52,14 +52,61 @@ enum ThunderboltFabricReader {
     /// （每 lane 速率）、IOThunderboltTunnel 及子类（tunnel 与协议）。
     static func readFabric() -> ThunderboltFabric {
         var fabric = ThunderboltFabric()
-        fabric.hops = readSwitches()
+        // USB4 隧道：macOS 26+ Apple Silicon 上不存在 IOThunderboltTunnel 服务，
+        // 隧道协议改由 IOPortTransportStateCIO 的 TunneledTransportsProvisioned 承载，
+        // 速率亦只能从该节点的 Generation 推断（IOThunderboltSwitch 无 LinkRate 属性）。
+        let cio = readCIO()
+        fabric.hops = readSwitches(fallbackSpeed: cio.speedGbps, fallbackGeneration: cio.generationLabel)
         fabric.tunnels = readTunnels()
+        if fabric.tunnels.isEmpty { fabric.tunnels = cio.tunnels }
         return fabric
+    }
+
+    /// USB4 CIO 节点摘要：已建隧道协议 + 代数换算速率（Gen2=20 / Gen3=40 / Gen4=80 Gbps）
+    private static func readCIO() -> (tunnels: [ThunderboltFabric.Tunnel], speedGbps: Int, generationLabel: String?) {
+        var tunnels: [ThunderboltFabric.Tunnel] = []
+        var speed = 0
+        var maxGen = 0
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOPortTransportStateCIO"), &iterator) == KERN_SUCCESS else {
+            return ([], 0, nil)
+        }
+        defer { IOObjectRelease(iterator) }
+        while case let service = IOIteratorNext(iterator), service != 0 {
+            defer { IOObjectRelease(service) }
+            func read(_ key: String) -> Any? {
+                IORegistryEntryCreateCFProperty(service, key as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue()
+            }
+            let port = ((read("ParentPortNumber") as? NSNumber) ?? (read("ParentBuiltInPortNumber") as? NSNumber))?.intValue
+            let gen = (read("Generation") as? NSNumber)?.intValue ?? 0
+            let active = (read("Active") as? NSNumber)?.boolValue ?? true
+            let protocols = (read("TunneledTransportsProvisioned") as? [String]) ?? []
+            guard active, !protocols.isEmpty || gen > 0 else { continue }
+
+            let gbps: Int
+            switch gen {
+            case 2: gbps = 20
+            case 3: gbps = 40
+            case 4: gbps = 80
+            default: gbps = 0
+            }
+            if gbps > speed { speed = gbps }
+            if gen > maxGen { maxGen = gen }
+            for proto in protocols {
+                tunnels.append(ThunderboltFabric.Tunnel(
+                    id: "cio-\(port ?? -1)-\(proto)",
+                    name: "Port \(port ?? 0) CIO",
+                    protocolName: proto,
+                    isActive: active
+                ))
+            }
+        }
+        return (tunnels, speed, maxGen > 0 ? "USB4 Gen\(maxGen)" : nil)
     }
 
     // MARK: - Switch 拓扑
 
-    private static func readSwitches() -> [ThunderboltFabric.Hop] {
+    private static func readSwitches(fallbackSpeed: Int = 0, fallbackGeneration: String? = nil) -> [ThunderboltFabric.Hop] {
         var services: [(service: io_service_t, name: String, depth: Int)] = []
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOThunderboltSwitch"), &iterator) == KERN_SUCCESS else {
@@ -79,8 +126,17 @@ enum ThunderboltFabricReader {
         var hops: [ThunderboltFabric.Hop] = []
         for (idx, item) in services.enumerated() {
             let depth = rootDepths[idx] ?? 0
-            let speed = laneSpeed(of: item.service)
-            let gen = generation(forSpeed: speed)
+            var speed = laneSpeed(of: item.service)
+            var gen = generation(forSpeed: speed)
+            // IOThunderboltSwitch 在 Apple Silicon 上无 LinkRate 类属性，链路速率改由 CIO 的 Generation 兜底，
+            // 否则面板恒显示 0 Gbps / "—"。
+            if speed <= 0, fallbackSpeed > 0 {
+                speed = fallbackSpeed
+                gen = fallbackGeneration ?? generation(forSpeed: fallbackSpeed)
+            } else if let fb = fallbackGeneration, speed > 0, speed == fallbackSpeed {
+                // 原生速率与 CIO 一致时，按 CIO 代数标注（USB4 Gen3 而非笼统的 TB3/TB4）
+                gen = fb
+            }
             hops.append(ThunderboltFabric.Hop(
                 id: "switch-\(idx)",
                 depth: depth,

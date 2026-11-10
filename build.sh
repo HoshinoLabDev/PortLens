@@ -14,7 +14,7 @@ HELPERS="$CONTENTS/Helpers"
 SWIFTC="${SWIFTC:-$(xcrun -f swiftc)}"
 export SDKROOT="${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}"
 
-CORE_SOURCES="Sources/Models.swift Sources/USBMonitor.swift Sources/Diagnostics.swift Sources/ProModels.swift Sources/ProDataSources.swift Sources/CableVendorDB.swift Sources/ProLogic.swift Sources/DisplayDiagnostics.swift Sources/USBIFXIDDB.swift Sources/ThunderboltFabric.swift Sources/DeviceIdentity.swift"
+CORE_SOURCES="Sources/Models.swift Sources/USBMonitor.swift Sources/Diagnostics.swift Sources/ProModels.swift Sources/ProDataSources.swift Sources/CableVendorDB.swift Sources/ProLogic.swift Sources/DisplayDiagnostics.swift Sources/USBIFXIDDB.swift Sources/ThunderboltFabric.swift Sources/DeviceIdentity.swift Sources/USB4Peer.swift"
 
 echo "==> 编译主程序"
 "$SWIFTC" -O -swift-version 5 -parse-as-library \

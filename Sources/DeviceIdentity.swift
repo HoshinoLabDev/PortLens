@@ -13,6 +13,7 @@ enum DeviceKind: String {
     case dock = "扩展坞"
     case hub = "集线器"
     case peripheral = "外设"
+    case storage = "存储设备"
     case unknown = "设备"
 
     /// 类型标签（英文兜底，与 UI 中性展示一致）
@@ -26,6 +27,7 @@ enum DeviceKind: String {
         case .dock: return "Dock"
         case .hub: return "Hub"
         case .peripheral: return "Device"
+        case .storage: return "Storage"
         case .unknown: return "Device"
         }
     }
