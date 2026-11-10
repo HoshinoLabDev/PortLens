@@ -11,6 +11,7 @@ enum CableVendorDB {
     /// 充电头、设备与线缆共用 USB-IF VID 编号，因此同一张表覆盖线缆厂商与充电器品牌。
     private static let known: [UInt16: String] = [
         0x05AC: "Apple",
+        0x36E9: "爱范儿 ifanr",       // 实测：当前 40Gbps 5A 240W EPR 线 VID=0x36E9（CandyDesign 系）
         0x8087: "英特尔 Intel",       // 实测：当前 USB4 被动线缆 e-marker VID=0x8087
         0x2717: "小米 Xiaomi",           // 实测：小米 USB4 线 VID=0x2717
         0x291A: "安克 Anker",             // 实测：当前 100W USB4 线 VID=0x291A；Anker 充电器同 VID

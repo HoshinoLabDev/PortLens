@@ -125,23 +125,22 @@ enum CableTrust {
     /// 评估 e-marker 异常信号：
     /// - 零 Vendor ID；
     /// - 速度字段落在保留位（B[2:0] >= 5）；
-    /// - 电流字段落在保留位（B[5:3] >= 2）；
-    /// - 线缆延迟字段保留位（B[13:11] == 111）；
-    /// - VID 不在已知 USB-IF 公布列表。
+    /// - 电流字段落在保留位（B[6:5] >= 3；0=3A、1/2=5A 均为合法编码）；
+    /// - 线缆延迟字段保留位（B[13:11] == 111）。
+    /// 注意：VID 是否收录于本地厂商表不作为异常信号——USB-IF 分配数万个 VID，
+    /// 本地表仅覆盖常见项，未收录由厂商字段以「未知厂商 (0xXXXX)」中性标注。
     static func assess(cableVDO: UInt32?, vendorVID: UInt16?, speedBits: Int, currentBits: Int) -> Assessment {
         var warnings: [String] = []
 
         if vendorVID == nil || vendorVID == 0 {
             warnings.append("e-marker 携带零 Vendor ID，this looks unusual")
-        } else if !USBIFXIDDB.isKnownVID(vendorVID) {
-            warnings.append("Vendor ID 0x\(String(format: "%04X", vendorVID ?? 0)) 未在已知 USB-IF 列表中，this looks unusual")
         }
 
         if speedBits >= 5 {
             warnings.append("线缆速度字段使用保留位（\(speedBits)），this looks unusual")
         }
 
-        if currentBits >= 2 {
+        if currentBits >= 3 {
             warnings.append("线缆电流字段使用保留位（\(currentBits)），this looks unusual")
         }
 
