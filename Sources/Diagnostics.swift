@@ -502,24 +502,12 @@ enum Diagnostics {
         let trustWarning: String?
         let rawVDOCable: UInt32?
 
-        /// 规格明细行：线缆类型 · 功率 · EPR · 厂商 · 认证
+        /// 类型 + 厂商行：功率/EPR 已在身份行，认证已在认证行，此处不重复
         var specLine: String {
             var parts: [String] = []
             if let pt = productType { parts.append(pt) }
-            parts.append("最大 \(maxWatts)W")
-            if isEPR { parts.append("EPR") }
             if let vid = vendorVID { parts.append(CableVendorDB.displayName(for: vid)) }
-            if let cert = certification { parts.append(certLabel(cert)) }
             return parts.joined(separator: " · ")
-        }
-
-        /// 认证标签本地化：certified / certified but unlisted 保持英文中性词
-        private func certLabel(_ cert: String) -> String {
-            switch cert {
-            case "certified": return "USB-IF certified"
-            case "certified but unlisted": return "certified but unlisted"
-            default: return cert
-            }
         }
     }
 
@@ -615,13 +603,8 @@ enum Diagnostics {
             cert = nil
         }
 
-        var lineDescription = "线缆 e-marker · \(speedLabel) · \(Int(current))A · \(maxWatts)W" + (epr ? " · EPR" : "")
-        if let vid { lineDescription += " · " + CableVendorDB.displayName(for: vid) }
-        if let cert, let m = cert.manufacturer {
-            lineDescription += " · \(m) 认证"
-        } else if let cert {
-            lineDescription += " · " + (cert.status == "certified but unlisted" ? "certified but unlisted" : "USB-IF certified")
-        }
+        // 身份行只保留电性能与传输能力；厂商归 specLine 的 chips，认证归 certificationRow，避免同一信息三处重复
+        let lineDescription = "线缆 e-marker · \(speedLabel) · \(Int(current))A · \(maxWatts)W" + (epr ? " · EPR" : "")
 
         return CableSpecInfo(
             speedLabel: speedLabel,

@@ -1159,7 +1159,8 @@ struct PortCardView: View {
     }
 
     private func certificationSuffix(_ cert: String) -> String {
-        if cert.contains("unlisted") { return "certified but unlisted" }
+        if cert.contains("unlisted") { return "已认证 · 名册未收录" }
+        if cert == "certified" { return "已认证" }
         return cert
     }
 
