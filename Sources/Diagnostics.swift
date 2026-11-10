@@ -56,8 +56,9 @@ enum Diagnostics {
                 for pn in power.usbCChargerPortNumbers {
                     let typeCIndex = pn - 1  // Type10 PortNumber → TypeC 编号
                     if let idx = cards.firstIndex(where: { !$0.isMagSafe && ($0.portNumber ?? -1) == typeCIndex }) {
-                        if cards[idx].isConnected {
-                            // 该口已正确呈现连接状态（充电器/设备），无需兜底覆盖
+                        if cards[idx].isConnected || cards[idx].cableLine != nil {
+                            // 该口已正确呈现连接状态（充电器/设备），或已读到 e-marker 线缆身份
+                            // （如 iPad/iPhone 等仅有 PD 无 USB 设备树的口），禁止兜底覆盖，否则线缆信息被吞
                             assigned = true
                             break
                         }
@@ -68,7 +69,7 @@ enum Diagnostics {
                         break
                     }
                 }
-                if !assigned, let idx = cards.firstIndex(where: { !$0.isMagSafe && !$0.isConnected }) {
+                if !assigned, let idx = cards.firstIndex(where: { !$0.isMagSafe && !$0.isConnected && $0.cableLine == nil }) {
                     let pn2 = cards[idx].portNumber ?? idx
                     cards[idx] = buildChargerCard(power: power, index: idx, portNumber: pn2,
                                                   chargerIdentity: chargers[pn2])
@@ -80,8 +81,8 @@ enum Diagnostics {
                 // 避免系统已在充电但 PortLens"识别不到充电器"。MagSafe 已接入场景由 MagSafe 卡负责，不受影响。
                 // 修复反向误报：若已有 USB-C 口被 buildCard 正常呈现为连接状态（如已识别充电器），
                 // 说明端口已正确呈现，不再往其他空口覆盖充电器卡。
-                if !cards.contains(where: { !$0.isMagSafe && $0.isConnected }) {
-                    if let idx = cards.firstIndex(where: { !$0.isMagSafe && !$0.isConnected }) {
+                if !cards.contains(where: { !$0.isMagSafe && ($0.isConnected || $0.cableLine != nil) }) {
+                    if let idx = cards.firstIndex(where: { !$0.isMagSafe && !$0.isConnected && $0.cableLine == nil }) {
                         let pn2 = cards[idx].portNumber ?? idx
                         cards[idx] = buildChargerCard(power: power, index: idx, portNumber: pn2,
                                                       chargerIdentity: chargers[pn2])
@@ -192,7 +193,10 @@ enum Diagnostics {
         if hasDisplay {
             dataLine = "DisplayPort 备用模式"
         } else if let top = devices.compactMap(\.speedGbps).max() {
-            dataLine = "协商速度 \(Int(top)) Gbps"
+            // 标题已含同一速度（"USB 设备 · 10 Gbps"）时不再重复一行协商速度
+            if !headline.contains("\(Int(top)) Gbps") {
+                dataLine = "协商速度 \(Int(top)) Gbps"
+            }
         } else if let fastest = devices.max(by: { $0.speedRaw < $1.speedRaw }) {
             dataLine = fastest.speedLabel
         }

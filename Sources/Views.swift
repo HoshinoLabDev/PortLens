@@ -734,7 +734,9 @@ struct PortCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerRow
-            if card.isConnected {
+            // 有线缆 e-marker 但无 USB 设备树的口（iPad/iPhone 仅 PD 接入）也必须展示线缆信息，
+            // 否则三层线缆布局在该场景被整体吞掉
+            if card.isConnected || card.cableLine != nil {
                 contentRows
                 if energyFlowEnabled {
                     EnergyFlowView(
@@ -871,7 +873,8 @@ struct PortCardView: View {
             if let cert = card.certification {
                 certificationRow(cert, manufacturer: card.certificationManufacturer)
             }
-            if let deviceLine = card.deviceLine {
+            // 设备名行：仅在结构化"已连接设备"区块缺位时兜底，避免同一设备名出现两次
+            if let deviceLine = card.deviceLine, card.connectedDevices.isEmpty {
                 row(icon: "externaldrive.fill.badge.checkmark", text: deviceLine, color: .secondary)
             }
             // 已连接设备区块（充电器 / 显示器 / iPhone 等）
