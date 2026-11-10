@@ -1848,7 +1848,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 宽体色块模式图标（贴合 macOS 菜单栏可用高度 22pt，避免被系统等比缩压造成元素挤压）
     /// 画布 62x22pt：左侧宽电池壳 + 内部色块比例（红黄绿分级、纵向渐变 + 柔和高光、每 10% 淡分段格线），
-    /// 壳内百分比数字中心跟随填充色块中心（clamp 在壳内），壳右端端子外侧留 4.5pt 净距再放状态符号，
+    /// 壳内百分比数字恒居中于电池壳（CoreText ink 边界对齐内槽中线），壳右端端子外侧留 4.5pt 净距再放状态符号，
     /// 保证数字、闪电、插头三者互不接触；充电=白色呼吸闪电 / 已接入未充电=USB-C 公头插头。
     /// 跃迁放大 scale 在绘制时 clamp 至 1.15，确保放大瞬间内容不溢出 22pt 画布。
     /// phase 传 nil 时输出静态帧（无光晕、符号静止）；传 Double 时启用外圈分级光晕呼吸与闪电脉动。
@@ -1974,19 +1974,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .shadow: numShadow
         ]
         let numSize = pctText.size(withAttributes: numAttrs)
-        let numTargetX = filledRect.width > 0 ? filledRect.midX : innerRect.midX
-        var numX = numTargetX
+        // 水平锚点固定为电池内槽中线：无论电量多少，数字恒在电池内部左右居中，不随填充色块漂移
+        let numTargetX = innerRect.midX
+        // inkLeft / inkWidth 为可见字形相对绘制起点的墨迹范围，用于精确居中与溢出兜底
+        var inkLeft = -numSize.width / 2
+        var inkWidth = numSize.width
+        var numX = numTargetX - numSize.width / 2
         if let ctx = NSGraphicsContext.current {
             let line = CTLineCreateWithAttributedString(NSAttributedString(string: pctText as String, attributes: numAttrs))
             let ink = CTLineGetImageBounds(line, ctx.cgContext)
             if ink.width > 0 {
+                inkLeft = ink.minX
+                inkWidth = ink.width
                 numX = numTargetX - ink.midX
-            } else {
-                numX = numTargetX - numSize.width / 2
             }
         }
-        // 数字不得越出壳内安全区（左右各留 1pt）
-        numX = max(innerRect.minX + 1.0, min(numX, innerRect.maxX - numSize.width - 1.0))
+        // 仅在墨迹将越出内槽时贴边收敛（正常字号下不触发，居中优先）
+        numX = max(innerRect.minX + 0.6 - inkLeft,
+                   min(numX, innerRect.maxX - 0.6 - (inkLeft + inkWidth)))
         let numY = shellRect.midY - numSize.height / 2
         pctText.draw(at: NSPoint(x: numX, y: numY), withAttributes: numAttrs)
         // 状态符号：端子可见右缘外 4.5pt 净距，垂直居中于电池壳中线；拔掉充电器不显示
