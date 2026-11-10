@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 DEV_DIR="$(pwd)"
 APP_NAME="PortLens"
-APP_VERSION="1.0"
+APP_VERSION="1.1"
 APP_BUNDLE="$DEV_DIR/build/$APP_NAME.app"
 CONTENTS="$APP_BUNDLE/Contents"
 MACOS="$CONTENTS/MacOS"

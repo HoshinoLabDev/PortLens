@@ -110,7 +110,7 @@ struct PowerMonitorView: View {
             } label: {
                 Image(systemName: powerStore.isRunning ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: 18))
-                    .foregroundStyle(powerStore.isRunning ? Color.orange : Color.green)
+                    .foregroundStyle(powerStore.isRunning ? Theme.warn : Theme.ok)
             }
             .buttonStyle(.plain)
             .help(powerStore.isRunning ? "暂停采样" : "开始采样")
@@ -136,13 +136,13 @@ struct PowerMonitorView: View {
         let displayV = inputW > 0 ? p.systemVoltageInMV / 1000.0 : p.voltageMV / 1000.0
         let displayA = inputW > 0 ? abs(p.systemCurrentInMA) / 1000.0 : abs(p.amperageMA) / 1000.0
         let stateText = p.externalConnected ? (p.isCharging ? "充电中" : (p.fullyCharged ? "已充满" : "已接电源")) : "使用电池"
-        let stateColor: Color = p.isCharging ? .green : (p.fullyCharged ? .green : .secondary)
+        let stateColor: Color = p.isCharging ? Theme.ok : (p.fullyCharged ? Theme.ok : .secondary)
 
         return ZStack(alignment: .topTrailing) {
             HStack(spacing: 24) {
-                metric(label: "功率", value: String(format: "%.1f W", displayW), color: .green, size: 30)
-                metric(label: "电流", value: String(format: "%.2f A", displayA), color: .blue, size: 22)
-                metric(label: "电压", value: String(format: "%.1f V", displayV), color: .orange, size: 22)
+                metric(label: "功率", value: String(format: "%.1f W", displayW), color: Theme.ok, size: 30)
+                metric(label: "电流", value: String(format: "%.2f A", displayA), color: Theme.accentBlue, size: 22)
+                metric(label: "电压", value: String(format: "%.1f V", displayV), color: Theme.warn, size: 22)
                 Spacer()
             }
             VStack(alignment: .trailing, spacing: 4) {
@@ -174,7 +174,7 @@ struct PowerMonitorView: View {
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusCard, style: .continuous)
                 .strokeBorder(
-                    LinearGradient(colors: [.green.opacity(0.4), .clear], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [Theme.ok.opacity(0.4), .clear], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1
                 )
         )
@@ -204,15 +204,15 @@ struct PowerMonitorView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "circle.fill")
                             .font(.system(size: 7))
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Theme.ok)
                         Text("当前 \(String(format: "%.1f W", last.watts))")
                             .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Capsule().fill(Color.green.opacity(0.12)))
-                    .overlay(Capsule().strokeBorder(Color.green.opacity(0.28), lineWidth: 1))
+                    .background(Capsule().fill(Theme.ok.opacity(0.12)))
+                    .overlay(Capsule().strokeBorder(Theme.ok.opacity(0.28), lineWidth: 1))
                 }
             }
             Group {
@@ -226,7 +226,7 @@ struct PowerMonitorView: View {
                                 y: .value("功率", sample.watts)
                             )
                             .foregroundStyle(
-                                LinearGradient(colors: [.green.opacity(0.5), .green.opacity(0.02)],
+                                LinearGradient(colors: [Theme.ok.opacity(0.5), Theme.ok.opacity(0.02)],
                                                startPoint: .top, endPoint: .bottom)
                             )
                             .interpolationMethod(.catmullRom)
@@ -234,19 +234,19 @@ struct PowerMonitorView: View {
                                 x: .value("时间", sample.timestamp),
                                 y: .value("功率", sample.watts)
                             )
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Theme.ok)
                             .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
                             .interpolationMethod(.catmullRom)
                         }
                         if let last = powerStore.samples.last {
                             RuleMark(y: .value("当前", last.watts))
-                                .foregroundStyle(.green.opacity(0.5))
+                                .foregroundStyle(Theme.ok.opacity(0.5))
                                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             PointMark(
                                 x: .value("时间", last.timestamp),
                                 y: .value("功率", last.watts)
                             )
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Theme.ok)
                             .symbolSize(70)
                         }
                     }
@@ -286,10 +286,10 @@ struct PowerMonitorView: View {
     private var emptyChart: some View {
         VStack(spacing: 8) {
             ZStack {
-                Circle().fill(Color.green.opacity(0.08)).frame(width: 48, height: 48)
+                Circle().fill(Theme.ok.opacity(0.08)).frame(width: 48, height: 48)
                 Image(systemName: "chart.xyaxis.line")
                     .font(.system(size: 20))
-                    .foregroundStyle(.green.opacity(0.7))
+                    .foregroundStyle(Theme.ok.opacity(0.7))
             }
             Text("正在等待采样…每 2 秒一个样本")
                 .font(.system(size: 10.5))
@@ -425,16 +425,16 @@ struct NegotiationDiagnosticsView: View {
             HStack(spacing: 8) {
                 Image(systemName: weak == nil ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(.system(size: 15))
-                    .foregroundStyle(weak == nil ? .green : .orange)
+                    .foregroundStyle(weak == nil ? Theme.ok : Theme.warn)
                 Text(result.portLabel)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                 Spacer()
                 if result.portLabel.contains("MagSafe") {
                     statusPill("充电专用", color: .secondary, icon: "bolt.fill")
                 } else if let weak = weak {
-                    statusPill("弱环节：\(weak)", color: .orange, icon: "exclamationmark.triangle.fill")
+                    statusPill("弱环节：\(weak)", color: Theme.warn, icon: "exclamationmark.triangle.fill")
                 } else {
-                    statusPill("全链路匹配", color: .green, icon: "checkmark.circle.fill")
+                    statusPill("全链路匹配", color: Theme.ok, icon: "checkmark.circle.fill")
                 }
             }
             Text(result.summary)
@@ -463,7 +463,7 @@ struct NegotiationDiagnosticsView: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.radiusInner, style: .continuous)
-                    .strokeBorder(weak != nil ? Color.orange.opacity(0.35) : Color.green.opacity(0.25), lineWidth: 1)
+                    .strokeBorder(weak != nil ? Theme.warn.opacity(0.35) : Theme.ok.opacity(0.25), lineWidth: 1)
             )
         }
         .padding(Theme.spacingL)
@@ -479,8 +479,8 @@ struct NegotiationDiagnosticsView: View {
             RoundedRectangle(cornerRadius: Theme.radiusCard, style: .continuous)
                 .strokeBorder(
                     weak != nil
-                        ? LinearGradient(colors: [.orange.opacity(0.45), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-                        : LinearGradient(colors: [.green.opacity(0.35), .clear], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        ? LinearGradient(colors: [Theme.warn.opacity(0.45), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        : LinearGradient(colors: [Theme.ok.opacity(0.35), .clear], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1
                 )
         )
@@ -537,14 +537,14 @@ private struct DiagnosticComparisonBar: View {
                 Spacer()
                 Text("协商 \(String(format: "%.1f Gbps", negotiated))")
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(isWeak ? Color.orange : Color.green)
+                    .foregroundStyle(isWeak ? Theme.warn : Theme.ok)
                 if isWeak {
                     Text("瓶颈")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
-                        .background(Capsule().fill(Color.orange))
+                        .background(Capsule().fill(Theme.warn))
                 }
             }
             GeometryReader { geo in
@@ -554,9 +554,9 @@ private struct DiagnosticComparisonBar: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Theme.glassCardFill)
                         .frame(width: geo.size.width, height: 7)
-                    Capsule().fill(Color.blue.opacity(0.3))
+                    Capsule().fill(Theme.nominal)
                         .frame(width: max(8, supportW), height: 7)
-                    Capsule().fill(isWeak ? Color.orange : Color.green)
+                    Capsule().fill(isWeak ? Theme.warn : Theme.ok)
                         .frame(width: max(8, negotiatedW), height: 7)
                 }
             }
@@ -622,7 +622,7 @@ struct SavedCablesView: View {
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 10.5))
-                    .foregroundStyle(.red.opacity(0.7))
+                    .foregroundStyle(Theme.bad.opacity(0.7))
             }
             .buttonStyle(.plain)
             .help("清空全部历史")
@@ -655,7 +655,7 @@ struct CableRowView: View {
             HStack(spacing: 8) {
                 Image(systemName: cable.hasAnomalies ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
                     .font(.system(size: 12))
-                    .foregroundStyle(cable.hasAnomalies ? .orange : .green)
+                    .foregroundStyle(cable.hasAnomalies ? Theme.warn : Theme.ok)
                 if store.editingRowID == cable.id {
                     TextField("线缆名称", text: Binding(get: { store.draftName }, set: { store.draftName = $0 }))
                         .textFieldStyle(.roundedBorder)
@@ -683,14 +683,14 @@ struct CableRowView: View {
                     .font(.system(size: 10.5, weight: .semibold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.purple.opacity(0.14)))
-                    .foregroundStyle(.purple)
+                    .background(Capsule().fill(Theme.chipFill))
+                    .foregroundStyle(Theme.chipText)
                 Text("\(cable.maxWatts)W")
                     .font(.system(size: 10.5, weight: .semibold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.green.opacity(0.14)))
-                    .foregroundStyle(.green)
+                    .background(Capsule().fill(Theme.ok.opacity(0.14)))
+                    .foregroundStyle(Theme.ok)
             }
 
             HStack(spacing: 12) {
@@ -698,7 +698,7 @@ struct CableRowView: View {
                 Label("最近 \(cable.lastSeen.formatted(date: .abbreviated, time: .shortened))", systemImage: "clock")
                 if cable.hasAnomalies {
                     Label("\(cable.anomalies.count) 条异常", systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warn)
                 }
                 Spacer()
                 Button(store.expandedRowID == cable.id ? "收起" : "详情") {
@@ -710,7 +710,7 @@ struct CableRowView: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 10.5))
-                        .foregroundStyle(.red.opacity(0.7))
+                        .foregroundStyle(Theme.bad.opacity(0.7))
                 }
                 .buttonStyle(.plain)
                 .help("删除记录")
@@ -736,7 +736,7 @@ struct CableRowView: View {
                             .foregroundStyle(.secondary)
                         ForEach(cable.usageTimeline.suffix(5).reversed()) { ev in
                             HStack(spacing: 6) {
-                                Circle().fill(ev.healthy ? Color.green : Color.orange).frame(width: 5, height: 5)
+                                Circle().fill(ev.healthy ? Theme.ok : Theme.warn).frame(width: 5, height: 5)
                                 Text(ev.timestamp.formatted(date: .abbreviated, time: .shortened))
                                 Text("· \(ev.portLabel)")
                                 Text("· \(Int(ev.negotiatedWatts))W")
@@ -749,12 +749,12 @@ struct CableRowView: View {
                     if !cable.anomalies.isEmpty {
                         Text("异常记录")
                             .font(.system(size: 10.5, weight: .semibold))
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warn)
                         ForEach(cable.anomalies.suffix(5).reversed()) { a in
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 9))
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(Theme.warn)
                                 Text(a.timestamp.formatted(date: .abbreviated, time: .shortened))
                                 Text("· \(a.kind)")
                                 Text("· \(a.detail)")
@@ -779,7 +779,7 @@ struct CableRowView: View {
             RoundedRectangle(cornerRadius: Theme.radiusCard, style: .continuous)
                 .strokeBorder(
                     cable.hasAnomalies
-                        ? LinearGradient(colors: [.orange.opacity(0.5), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        ? LinearGradient(colors: [Theme.warn.opacity(0.5), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
                         : LinearGradient(colors: [.white.opacity(0.12), .clear], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1
                 )
@@ -824,8 +824,8 @@ struct PinDiagramView: View {
             Divider().opacity(0.5)
 
             HStack(alignment: .top, spacing: Theme.spacingL) {
-                pinColumn("A 排", side: "A", groupColor: .blue)
-                pinColumn("B 排", side: "B", groupColor: .green)
+                pinColumn("A 排", side: "A", groupColor: Theme.accentBlue)
+                pinColumn("B 排", side: "B", groupColor: Theme.ok)
             }
             .frame(maxWidth: .infinity, alignment: .center)
 
@@ -881,10 +881,10 @@ struct PinDiagramView: View {
 
     private var legend: some View {
         HStack(spacing: 16) {
-            legendItem("电源", color: .red)
-            legendItem("配置 (CC/SBU)", color: .blue)
-            legendItem("SuperSpeed", color: .green)
-            legendItem("USB 2.0 (DP/DN)", color: .orange)
+            legendItem("电源", color: Theme.bad)
+            legendItem("配置 (CC/SBU)", color: Theme.accentBlue)
+            legendItem("SuperSpeed", color: Theme.ok)
+            legendItem("USB 2.0 (DP/DN)", color: Theme.warn)
         }
         .font(.system(size: 10.5))
     }
@@ -906,10 +906,10 @@ struct LiquidDetectionBadge: View {
         HStack(spacing: 5) {
             Image(systemName: state.present ? "drop.triangle.fill" : "drop")
                 .font(.system(size: 10.5))
-                .foregroundStyle(state.present ? .orange : .green)
+                .foregroundStyle(state.present ? Theme.warn : Theme.ok)
             Text(state.present ? "液体检测：已检测到接触/污染" : "液体检测：正常")
                 .font(.system(size: 10.5))
-                .foregroundStyle(state.present ? .orange : .secondary)
+                .foregroundStyle(state.present ? Theme.warn : .secondary)
             if state.irqCount > 0 {
                 Text("IRQ \(state.irqCount)")
                     .font(.system(size: 9, design: .monospaced))
@@ -994,20 +994,20 @@ struct DisplayDiagnosticsView: View {
         HStack(spacing: 6) {
             Image(systemName: "cable.connector")
                 .font(.system(size: 10.5))
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.warn)
             Text("链路中发现可能的转接器/扩展坞：\(adapters.joined(separator: " · "))")
                 .font(.system(size: 10.5))
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.warn)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.spacingM)
         .background(
             RoundedRectangle(cornerRadius: Theme.radiusInner, style: .continuous)
-                .fill(Color.orange.opacity(0.10))
+                .fill(Theme.warn.opacity(0.10))
         )
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusInner, style: .continuous)
-                .strokeBorder(Color.orange.opacity(0.3), lineWidth: 1)
+                .strokeBorder(Theme.warn.opacity(0.3), lineWidth: 1)
         )
     }
 
@@ -1027,11 +1027,11 @@ struct DisplayDiagnosticsView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Capsule().fill(LinearGradient(colors: [.blue, .cyan], startPoint: .leading, endPoint: .trailing)))
+                        .background(Capsule().fill(LinearGradient(colors: [Theme.accentBlue, Theme.accent], startPoint: .leading, endPoint: .trailing)))
                 } else {
                     Text(d.sizeLabel)
                         .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Theme.accentBlue)
                 }
                 Spacer()
                 Text(String(format: "%.1f Hz", d.refreshRate))
@@ -1054,19 +1054,19 @@ struct DisplayDiagnosticsView: View {
                         .foregroundStyle(.secondary)
                     Text(String(format: "%.1f Gbps", d.bandwidthGbps))
                         .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(overload ? .orange : .blue)
+                        .foregroundStyle(overload ? Theme.warn : Theme.accentBlue)
                     Spacer()
                     Text(String(format: "链路承载 ~%.1f Gbps", d.linkCapacityGbps))
                         .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(overload ? .orange : .green)
+                        .foregroundStyle(overload ? Theme.warn : Theme.ok)
                 }
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule().fill(Theme.glassCardFill)
                             .frame(width: geo.size.width, height: 6)
-                        Capsule().fill(Color.blue.opacity(0.35))
+                        Capsule().fill(Theme.nominal)
                             .frame(width: geo.size.width * CGFloat(min(d.bandwidthGbps / maxBw, 1)), height: 6)
-                        Capsule().fill(overload ? Color.orange : Color.green)
+                        Capsule().fill(overload ? Theme.warn : Theme.ok)
                             .frame(width: geo.size.width * CGFloat(min(d.linkCapacityGbps / maxBw, 1)), height: 6)
                     }
                 }
@@ -1076,10 +1076,10 @@ struct DisplayDiagnosticsView: View {
             HStack(spacing: 6) {
                 Image(systemName: d.dscRequired ? "waveform.badge.minus" : "checkmark.seal.fill")
                     .font(.system(size: 10.5))
-                    .foregroundStyle(d.dscRequired ? .purple : .green)
+                    .foregroundStyle(d.dscRequired ? Theme.accentBlue : Theme.ok)
                 Text("DSC 压缩：\(d.dscText)")
                     .font(.system(size: 10.5, weight: .medium))
-                    .foregroundStyle(d.dscRequired ? .purple : .green)
+                    .foregroundStyle(d.dscRequired ? Theme.accentBlue : Theme.ok)
             }
 
             Text(d.verdict)
@@ -1090,7 +1090,7 @@ struct DisplayDiagnosticsView: View {
             if !d.adapters.isEmpty {
                 Text("链路转接：\(d.adapters.joined(separator: " · "))")
                     .font(.system(size: 10.5))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warn)
             }
         }
         .padding(Theme.spacingL)
@@ -1107,7 +1107,7 @@ struct DisplayDiagnosticsView: View {
             RoundedRectangle(cornerRadius: Theme.radiusCard, style: .continuous)
                 .strokeBorder(
                     overload
-                        ? LinearGradient(colors: [.orange.opacity(0.45), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        ? LinearGradient(colors: [Theme.warn.opacity(0.45), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
                         : LinearGradient(colors: [.white.opacity(0.12), .clear], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1
                 )

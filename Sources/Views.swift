@@ -69,6 +69,9 @@ extension Theme {
     static let warn = Color(red: 0.95, green: 0.62, blue: 0.24)
     static let bad = Color(red: 0.92, green: 0.36, blue: 0.34)
 
+    // 标称/理论值层（P1：中性灰，仅用于上限、理论带宽等非三态数据）
+    static let nominal = Color.secondary.opacity(0.35)
+
     // 分层玻璃（P1：子块统一扁平内衬，不叠加阴影与高光）
     static let chipText = Color.secondary
     static let chipFill = Color.primary.opacity(0.07)
