@@ -56,13 +56,24 @@ extension Theme {
     static let radiusInner: CGFloat = 9
     static let radiusChip: CGFloat = 6
 
-    // 字阶
-    static let fontHeadline = Font.system(size: 14, weight: .semibold)
-    static let fontTitle = Font.system(size: 12.5, weight: .semibold)
-    static let fontBody = Font.system(size: 11)
-    static let fontCaption = Font.system(size: 9.5)
-    static let fontCaptionMono = Font.system(size: 9.5, design: .monospaced)
+    // 字阶（P1：四级收敛 —— 15 / 12 / 10.5 / 9，大数 22 单独保留）
+    static let fontHeadline = Font.system(size: 15, weight: .semibold)
+    static let fontTitle = Font.system(size: 12, weight: .semibold)
+    static let fontBody = Font.system(size: 10.5)
+    static let fontCaption = Font.system(size: 9)
+    static let fontCaptionMono = Font.system(size: 9, design: .monospaced)
     static let fontValue = Font.system(size: 22, weight: .bold, design: .rounded)
+
+    // 语义色（P1：收敛为 中性灰 + 品牌绿，仅保留 成功/警示/故障 三态色）
+    static let ok = Color(red: 0.32, green: 0.83, blue: 0.66)
+    static let warn = Color(red: 0.95, green: 0.62, blue: 0.24)
+    static let bad = Color(red: 0.92, green: 0.36, blue: 0.34)
+
+    // 分层玻璃（P1：子块统一扁平内衬，不叠加阴影与高光）
+    static let chipText = Color.secondary
+    static let chipFill = Color.primary.opacity(0.07)
+    static let innerFill = Color.primary.opacity(0.06)
+    static let innerStroke = Color.primary.opacity(0.09)
 }
 
 // MARK: - 毛玻璃背景（NSVisualEffectView 封装）
@@ -115,8 +126,8 @@ struct GlassCard<Content: View>: View {
 
 struct SpecChip: View {
     let text: String
-    var foreground: Color = Theme.accent
-    var background: Color = Theme.accent.opacity(0.14)
+    var foreground: Color = Theme.chipText
+    var background: Color = Theme.chipFill
 
     var body: some View {
         Text(text)
@@ -135,9 +146,9 @@ struct MetricBanner: View {
         case success, warning, limited
         var color: Color {
             switch self {
-            case .success: return .green
-            case .warning: return .orange
-            case .limited: return .red
+            case .success: return Theme.ok
+            case .warning: return Theme.warn
+            case .limited: return Theme.bad
             }
         }
         var tintOpacity: Double {
@@ -169,11 +180,11 @@ struct MetricBanner: View {
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10.5, weight: .semibold))
                     .foregroundStyle(.primary)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.system(size: 10))
+                        .font(.system(size: 10.5))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -324,17 +335,17 @@ struct ContentView: View {
                     .frame(width: 30, height: 30)
                     .shadow(color: Theme.accent.opacity(0.35), radius: 4, y: 0)
                 Image(systemName: "cable.connector")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 5) {
                     Text("PortLens")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .lineLimit(1)
                 }
                 Text(subtitleLine)
-                    .font(.system(size: 9.5))
+                    .font(.system(size: 9))
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -349,7 +360,7 @@ struct ContentView: View {
                     monitor.refresh()
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 10.5, weight: .medium))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
@@ -401,7 +412,7 @@ struct ContentView: View {
             }
         } label: {
             Image(systemName: "chart.xyaxis.line")
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
@@ -426,10 +437,10 @@ struct ContentView: View {
                     .foregroundStyle(Theme.brandGradient)
             }
             Text("当前端口均为空")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.secondary)
             Text("插入线缆或设备后，这里将实时显示诊断信息")
-                .font(.system(size: 10))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
@@ -441,7 +452,7 @@ struct ContentView: View {
             HStack(spacing: 6) {
                 Toggle("隐藏空端口", isOn: $settings.hideEmptyPorts)
                     .toggleStyle(.checkbox)
-                    .font(.system(size: 11))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -449,7 +460,7 @@ struct ContentView: View {
                 NSApplication.shared.terminate(nil)
             }
             .buttonStyle(.plain)
-            .font(.system(size: 11))
+            .font(.system(size: 10.5))
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -462,7 +473,7 @@ struct ContentView: View {
                     .strokeBorder(Color.gray.opacity(0.22), lineWidth: 1)
             )
             Text("v\(AppInfo.version)")
-                .font(.system(size: 8.5, weight: .regular, design: .rounded))
+                .font(.system(size: 9, weight: .regular, design: .rounded))
                 .foregroundStyle(Color.gray.opacity(0.45))
                 .padding(.leading, 2)
         }
@@ -506,17 +517,17 @@ struct BatteryBadge: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(iconTint)
                 .fixedSize()
             Text("\(power.batteryPercent)%")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .lineLimit(1)
                 .fixedSize()
             if power.isCharging {
                 Text("\(Int(power.wattsNow.rounded()))W")
-                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.green)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.ok)
                     .lineLimit(1)
                     .fixedSize()
             }
@@ -577,11 +588,11 @@ struct EnergyFlowView: View {
                     if isCharging {
                         Spacer()
                         Image(systemName: "battery.100.bolt")
-                            .font(.system(size: 12.5, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(flowColor.opacity(0.9))
                     } else {
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 12.5, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(flowColor.opacity(0.9))
                         Spacer()
                     }
@@ -789,12 +800,12 @@ struct PortCardView: View {
                     statusChip
                 }
                 Text(subtitle)
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
             Text(portLabel)
-                .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 2.5)
@@ -844,7 +855,7 @@ struct PortCardView: View {
                 row(icon: "gauge.with.dots.needle.50percent", text: dataLine, color: Theme.tint(card.tint))
             }
             if let cableLine = card.cableLine {
-                row(icon: "cable.coaxial", text: cableLine, color: .purple)
+                row(icon: "cable.coaxial", text: cableLine, color: .secondary)
             }
             if let cableSpec = card.cableSpec {
                 cableSpecChips(cableSpec)
@@ -858,7 +869,7 @@ struct PortCardView: View {
                 certificationRow(cert, manufacturer: card.certificationManufacturer)
             }
             if let deviceLine = card.deviceLine {
-                row(icon: "externaldrive.fill.badge.checkmark", text: deviceLine, color: .blue)
+                row(icon: "externaldrive.fill.badge.checkmark", text: deviceLine, color: .secondary)
             }
             // 已连接设备区块（充电器 / 显示器 / iPhone 等）
             if !card.connectedDevices.isEmpty {
@@ -876,19 +887,19 @@ struct PortCardView: View {
                 pdoSection(pdos)
             }
             if let fault = card.faultText {
-                row(icon: "exclamationmark.triangle.fill", text: fault, color: .orange)
+                row(icon: "exclamationmark.triangle.fill", text: fault, color: Theme.warn)
             }
             if let name = savedCableName {
-                row(icon: "bookmark.fill", text: "已识别线缆：\(name)", color: .purple)
+                row(icon: "bookmark.fill", text: "已识别线缆：\(name)", color: .secondary)
             }
             if liquidState != .idle, liquidState != .notSupported {
                 row(icon: liquidIcon, text: liquidText, color: liquidColor)
             }
             if let health {
-                row(icon: "heart.text.square.fill", text: health.summaryText, color: health.hasIssues ? .orange : .green)
+                row(icon: "heart.text.square.fill", text: health.summaryText, color: health.hasIssues ? Theme.warn : Theme.ok)
             }
             if let resistance {
-                row(icon: "point.bottomleft.forward.to.point.topright.scurvepath", text: "线缆电阻 ≈ \(resistance.formatted)（\(resistance.note)）", color: resistance.lowConfidence ? .orange : .blue)
+                row(icon: "point.bottomleft.forward.to.point.topright.scurvepath", text: "线缆电阻 ≈ \(resistance.formatted)（\(resistance.note)）", color: resistance.lowConfidence ? Theme.warn : .secondary)
             } else if let resistanceReason {
                 row(icon: "point.bottomleft.forward.to.point.topright.scurvepath", text: resistanceReason, color: .secondary)
             }
@@ -903,7 +914,7 @@ struct PortCardView: View {
     private func connectedDevicesSection(_ devices: [ConnectedDevice]) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text("已连接设备")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.leading, 2)
             ForEach(devices) { device in
@@ -913,11 +924,11 @@ struct PortCardView: View {
         .padding(9)
         .background(
             RoundedRectangle(cornerRadius: Theme.radiusChip, style: .continuous)
-                .fill(Color.white.opacity(0.045))
+                .fill(Theme.innerFill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusChip, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                .strokeBorder(Theme.innerStroke, lineWidth: 1)
         )
     }
 
@@ -934,10 +945,10 @@ struct PortCardView: View {
             VStack(alignment: .leading, spacing: 1.5) {
                 HStack(spacing: 5) {
                     Text(device.summary)
-                        .font(.system(size: 11.5, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .lineLimit(1)
                     Text(device.kind.rawValue)
-                        .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                        .font(.system(size: 9, weight: .semibold, design: .rounded))
                         .foregroundStyle(Theme.tint(card.tint).opacity(0.9))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1.5)
@@ -945,7 +956,7 @@ struct PortCardView: View {
                 }
                 if let detail = device.detail {
                     Text(detail)
-                        .font(.system(size: 9.5))
+                        .font(.system(size: 9))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -979,9 +990,9 @@ struct PortCardView: View {
 
     private var liquidColor: Color {
         switch liquidState.mode {
-        case .detected: return .red
-        case .warning: return .orange
-        case .normal: return .green
+        case .detected: return Theme.bad
+        case .warning: return Theme.warn
+        case .normal: return Theme.ok
         }
     }
 
@@ -1011,7 +1022,7 @@ struct PortCardView: View {
         if parts.isEmpty {
             return AnyView(
                 Text(spec)
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
                     .padding(.leading, 22)
             )
@@ -1020,9 +1031,9 @@ struct PortCardView: View {
             HStack(spacing: 4) {
                 Image(systemName: "tag.fill")
                     .font(.system(size: 9))
-                    .foregroundStyle(.purple.opacity(0.85))
+                    .foregroundStyle(.secondary)
                 ForEach(Array(parts.enumerated()), id: \.offset) { _, part in
-                    SpecChip(text: part, foreground: .purple, background: Color.purple.opacity(0.13))
+                    SpecChip(text: part)
                 }
             }
             .padding(.leading, 22)
@@ -1032,11 +1043,11 @@ struct PortCardView: View {
     private func row(icon: String, text: String, color: Color) -> some View {
         HStack(alignment: .top, spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
                 .foregroundStyle(color)
                 .frame(width: 16)
             Text(text)
-                .font(.system(size: 11))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -1045,45 +1056,45 @@ struct PortCardView: View {
     private func pdoSection(_ pdos: [PDOProfile]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("充电器功率档位 (PDO)")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(.secondary)
             HStack(spacing: 5) {
                 ForEach(pdos) { pdo in
                     VStack(spacing: 2) {
                         if pdo.isActive {
                             Text("当前使用")
-                                .font(.system(size: 8, weight: .bold, design: .rounded))
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 1.5)
-                                .background(Capsule().fill(Color.green))
+                                .background(Capsule().fill(Theme.ok))
                         } else {
                             Text("当前使用")
-                                .font(.system(size: 8, weight: .bold, design: .rounded))
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
                                 .foregroundStyle(.clear)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 1.5)
                                 .background(Capsule().fill(Color.clear))
                         }
                         Text(String(format: "%.0fV", pdo.volts))
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                         Text(String(format: "%.1fA", pdo.amps))
                             .font(.system(size: 9, design: .rounded))
                             .foregroundStyle(.secondary)
                         Text(String(format: "%.0fW", pdo.watts))
                             .font(.system(size: 9, weight: .bold, design: .rounded))
-                            .foregroundStyle(pdo.isActive ? .green : .secondary)
+                            .foregroundStyle(pdo.isActive ? Theme.ok : .secondary)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(pdo.isActive ? Color.green.opacity(0.13) : Color(nsColor: .quaternaryLabelColor).opacity(0.22))
+                            .fill(pdo.isActive ? Theme.ok.opacity(0.13) : Theme.innerFill)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(pdo.isActive ? Color.green.opacity(0.4) : Color.clear, lineWidth: 1)
+                            .strokeBorder(pdo.isActive ? Theme.ok.opacity(0.32) : Color.clear, lineWidth: 1)
                     )
                 }
             }
@@ -1097,14 +1108,14 @@ struct PortCardView: View {
         HStack(spacing: 7) {
             ZStack {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.orange.opacity(0.18))
+                    .fill(Theme.warn.opacity(0.14))
                     .frame(width: 24, height: 24)
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(Theme.warn)
             }
             Text(text)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -1112,34 +1123,34 @@ struct PortCardView: View {
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: Theme.radiusInner, style: .continuous)
-                    .fill(LinearGradient(colors: [Color.orange.opacity(0.16), Color.orange.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .fill(LinearGradient(colors: [Theme.warn.opacity(0.12), Theme.warn.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 RoundedRectangle(cornerRadius: Theme.radiusInner, style: .continuous)
                     .fill(LinearGradient(colors: [.white.opacity(0.06), .clear], startPoint: .top, endPoint: .bottom))
             }
         )
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusInner, style: .continuous)
-                .strokeBorder(Color.orange.opacity(0.38), lineWidth: 1)
+                .strokeBorder(Theme.warn.opacity(0.32), lineWidth: 1)
         )
     }
 
     /// USB-IF 认证：徽章 + 制造商 chip
     private func certificationRow(_ cert: String, manufacturer: String?) -> some View {
         let isUnlisted = cert.contains("unlisted")
-        let color: Color = isUnlisted ? .secondary : .green
+        let color: Color = isUnlisted ? .secondary : Theme.ok
         return HStack(spacing: 6) {
             Image(systemName: isUnlisted ? "checkmark.seal" : "checkmark.seal.fill")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(color)
                 .frame(width: 16)
             Text("USB-IF 认证")
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
                 .foregroundStyle(.primary)
             Spacer()
             if let m = manufacturer, !m.isEmpty {
-                SpecChip(text: m, foreground: color, background: color.opacity(0.13))
+                SpecChip(text: m, foreground: color, background: color.opacity(0.10))
             } else {
-                SpecChip(text: certificationSuffix(cert), foreground: color, background: color.opacity(0.13))
+                SpecChip(text: certificationSuffix(cert), foreground: color, background: color.opacity(0.10))
             }
         }
     }
@@ -1154,13 +1165,13 @@ struct PortCardView: View {
         HStack(alignment: .center, spacing: 8) {
             Image(systemName: "arrow.left.arrow.right.circle.fill")
                 .font(.system(size: 12))
-                .foregroundStyle(.blue)
+                .foregroundStyle(.secondary)
             Text("活跃传输")
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(.secondary)
             Spacer()
             ForEach(transports, id: \.self) { t in
-                SpecChip(text: t, foreground: .blue, background: Color.blue.opacity(0.12))
+                SpecChip(text: t)
             }
         }
         .padding(.vertical, 2)
@@ -1172,48 +1183,48 @@ struct PortCardView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: "bolt.horizontal.circle.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.purple)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(.secondary)
                 Text("Thunderbolt fabric")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10.5, weight: .semibold))
                     .foregroundStyle(.primary)
                 Spacer()
-                SpecChip(text: fabric.generationSummary, foreground: .purple, background: Color.purple.opacity(0.13))
+                SpecChip(text: fabric.generationSummary)
             }
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(fabric.hops) { hop in
                     HStack(spacing: 6) {
                         Text(String(repeating: "  ", count: hop.depth))
-                            .font(.system(size: 8))
+                            .font(.system(size: 9))
                         Image(systemName: "rectangle.stack.fill")
-                            .font(.system(size: 8))
-                            .foregroundStyle(.purple)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
                         Text(hop.name)
-                            .font(.system(size: 9.5, weight: .medium))
+                            .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                         Spacer(minLength: 4)
-                        SpecChip(text: "\(hop.generation)", foreground: .purple.opacity(0.9), background: Color.purple.opacity(0.10))
-                        SpecChip(text: "\(hop.laneSpeedGbps) Gbps/lane", foreground: .purple.opacity(0.9), background: Color.purple.opacity(0.10))
+                        SpecChip(text: "\(hop.generation)")
+                        SpecChip(text: "\(hop.laneSpeedGbps) Gbps/lane")
                     }
                 }
             }
             .padding(8)
             .background(
                 RoundedRectangle(cornerRadius: Theme.radiusInner, style: .continuous)
-                    .fill(Color.purple.opacity(0.06))
+                    .fill(Theme.innerFill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.radiusInner, style: .continuous)
-                    .strokeBorder(Color.purple.opacity(0.16), lineWidth: 1)
+                    .strokeBorder(Theme.innerStroke, lineWidth: 1)
             )
             if !fabric.tunnels.isEmpty {
                 HStack(spacing: 5) {
                     Image(systemName: "point.3.connected.trianglepath.dotted")
                         .font(.system(size: 9))
-                        .foregroundStyle(.purple.opacity(0.8))
+                        .foregroundStyle(.secondary)
                     Text("活跃 tunnel")
-                        .font(.system(size: 9.5, weight: .medium))
+                        .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                     Text(fabric.activeTunnelSummary)
                         .font(.system(size: 9))
@@ -1346,6 +1357,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
         subscribeSettings()
+
+        // 自动化/调试入口：--open-panel 启动后直接展开主面板，便于截图验收
+        if CommandLine.arguments.contains("--open-panel") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+                self?.togglePopover(nil)
+            }
+        }
     }
 
     private var cancellables: Set<AnyCancellable> = []
@@ -1820,29 +1838,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return image
     }
 
-    /// 宽体色块模式图标：加宽电池壳（相比 19pt 标准 battery symbol 明显加宽），
-    /// 内部以色块比例展示剩余电量（红黄绿分级、圆角、细腻纵向渐变 + 柔和高光、每 10% 淡分段格线），
-    /// 百分比数字严格按内部填充色块区域水平居中（文字中心 == 色块中心）；
-    /// 充电=白色呼吸闪电 / 已接入未充电=白色纤细插头 置于电池壳右端（端子）外侧紧贴位置（左端距端子右缘 1.5pt≈3px）。
-    /// 画布 74pt 宽，保证状态跃迁放大（scale 1.28）与呼吸放大时壳外符号仍不溢出画布。
-    /// phase 传 nil 时输出静态帧（无光晕、符号静止）；传 Double 时启用外圈分级光晕呼吸与闪电脉动，
-    /// 并支持状态跃迁放大 scale 与高速设备彩虹闪（rainbow）。
+    /// 宽体色块模式图标（贴合 macOS 菜单栏可用高度 22pt，避免被系统等比缩压造成元素挤压）
+    /// 画布 62x22pt：左侧宽电池壳 + 内部色块比例（红黄绿分级、纵向渐变 + 柔和高光、每 10% 淡分段格线），
+    /// 壳内百分比数字中心跟随填充色块中心（clamp 在壳内），壳右端端子外侧留 4.5pt 净距再放状态符号，
+    /// 保证数字、闪电、插头三者互不接触；充电=白色呼吸闪电 / 已接入未充电=USB-C 公头插头。
+    /// 跃迁放大 scale 在绘制时 clamp 至 1.15，确保放大瞬间内容不溢出 22pt 画布。
+    /// phase 传 nil 时输出静态帧（无光晕、符号静止）；传 Double 时启用外圈分级光晕呼吸与闪电脉动。
     static func wideBarStatusImage(power: PowerState, phase: Double? = nil, rainbow: Bool = false, scale: CGFloat = 1.0) -> NSImage? {
-        let size = NSSize(width: 74, height: 28)
+        // 菜单栏可用高度 22pt：画布高度严格等于该值，宽度按内容排布（壳 39 + 端子 2 + 间距 4.5 + 插头 6.8 + 留白）
+        let size = NSSize(width: 62, height: 22)
         let image = NSImage(size: size)
         image.lockFocus()
         let center = NSPoint(x: size.width / 2, y: size.height / 2)
-        // 状态跃迁放大：整体缩放居中（与动态模式一致的弹簧衰减复位）
-        if scale != 1.0 {
+        // 状态跃迁放大：整体缩放居中，clamp 1.15 防止溢出画布
+        let clampedScale = max(1.0, min(scale, 1.15))
+        if clampedScale != 1.0 {
             let t = NSAffineTransform()
             t.translateX(by: center.x, yBy: center.y)
-            t.scale(by: scale)
+            t.scale(by: clampedScale)
             t.translateX(by: -center.x, yBy: -center.y)
             t.concat()
         }
         let breathing = phase != nil
         let p = phase ?? 0.0
-        // 呼吸相位（2 秒周期，正弦 0...1）；静态帧固定 0.5 使光晕半亮
         let breathe = breathing ? 0.5 + 0.5 * sin((p / 2.0).truncatingRemainder(dividingBy: 1.0) * 2.0 * .pi) : 0.5
         let baseColor: NSColor
         if rainbow {
@@ -1851,66 +1869,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             baseColor = BatteryLevelColor.nsColor(for: power.batteryPercent)
         }
-        // 外圈光晕（两层圆环呼吸，仅呼吸模式绘制）
+        // 外圈光晕（两层圆环呼吸，仅呼吸模式绘制；半径收在 22pt 画布内）
         if breathing {
             for layer in 0..<2 {
-                let r = 6.0 + breathe * 3.0 + Double(layer) * 4.0
-                let alpha = (0.22 + breathe * 0.33) * (layer == 0 ? 1.0 : 0.55)
+                let r = 5.2 + breathe * 2.2 + Double(layer) * 2.9
+                let alpha = (0.20 + breathe * 0.30) * (layer == 0 ? 1.0 : 0.5)
                 let ring = NSBezierPath(ovalIn: NSRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2))
                 baseColor.withAlphaComponent(alpha).setStroke()
-                ring.lineWidth = 1.4
+                ring.lineWidth = 1.2
                 ring.stroke()
             }
         }
-        // 电池壳（宽体圆角矩形，玻璃感：深色半透明底 + 细描边 + 顶部柔和高光）
-        let shellRect = NSRect(x: 3.5, y: 4.5, width: 47.0, height: 20.0)
-        let shell = NSBezierPath(roundedRect: shellRect, xRadius: 4.0, yRadius: 4.0)
+        // 电池壳（宽体圆角矩形，玻璃感：深色半透明底 + 细描边 + 顶部柔和高光），垂直居中于 22pt 画布
+        let shellRect = NSRect(x: 3.5, y: 4.5, width: 39.0, height: 13.0)
+        let shell = NSBezierPath(roundedRect: shellRect, xRadius: 3.2, yRadius: 3.2)
         NSColor(calibratedWhite: 0.12, alpha: 0.55).setFill()
         shell.fill()
         NSColor(calibratedWhite: 0.55, alpha: 0.5).setStroke()
         shell.lineWidth = 1.0
         shell.stroke()
-        // 顶部柔和玻璃高光（壳内 1pt 细线）
         NSColor(calibratedWhite: 1.0, alpha: 0.15).setStroke()
         let shellHi = NSBezierPath()
-        shellHi.move(to: NSPoint(x: shellRect.minX + 2.6, y: shellRect.maxY - 1.3))
-        shellHi.line(to: NSPoint(x: shellRect.maxX - 2.6, y: shellRect.maxY - 1.3))
+        shellHi.move(to: NSPoint(x: shellRect.minX + 2.2, y: shellRect.maxY - 1.2))
+        shellHi.line(to: NSPoint(x: shellRect.maxX - 2.2, y: shellRect.maxY - 1.2))
         shellHi.lineWidth = 0.8
         shellHi.stroke()
         // 正极端子（右侧凸头，同色系）
-        let terminalRect = NSRect(x: 50.5, y: 10.0, width: 2.5, height: 9.0)
-        let terminal = NSBezierPath(roundedRect: terminalRect, xRadius: 1.0, yRadius: 1.0)
+        let terminalRect = NSRect(x: 42.9, y: 8.0, width: 2.0, height: 6.0)
+        let terminal = NSBezierPath(roundedRect: terminalRect, xRadius: 0.9, yRadius: 0.9)
         NSColor(calibratedWhite: 0.12, alpha: 0.55).setFill()
         terminal.fill()
         NSColor(calibratedWhite: 0.55, alpha: 0.5).setStroke()
         terminal.lineWidth = 1.0
         terminal.stroke()
-        // 内部填充区（壳内缩 2.5pt）
-        let innerRect = NSRect(x: shellRect.minX + 2.5, y: shellRect.minY + 2.5,
-                               width: shellRect.width - 5.0, height: shellRect.height - 5.0)
-        // 空槽底色：先在整个壳内铺一层柔和基底（电量等级色 22%），使色块右缘两侧均为"绿系"底色，
-        // 色块与空槽亮度差大幅减小，消除非满电时"色块右缘硬边界"被误读为竖线的观感
-        let slot = NSBezierPath(roundedRect: innerRect, xRadius: 1.6, yRadius: 1.6)
+        // 内部填充区（壳内缩 2.2pt）
+        let innerRect = NSRect(x: shellRect.minX + 2.2, y: shellRect.minY + 2.2,
+                               width: shellRect.width - 4.4, height: shellRect.height - 4.4)
+        // 空槽底色：整壳铺一层电量等级色 22% 基底，缩小色块与空槽亮度差，避免色块右缘被误读为竖线
+        let slot = NSBezierPath(roundedRect: innerRect, xRadius: 1.4, yRadius: 1.4)
         baseColor.withAlphaComponent(0.22).setFill()
         slot.fill()
-        // 每 10% 淡分段格线（在空槽与色块上方均可见，辅助比例读取）
+        // 每 10% 淡分段格线
         let segments = 10
         let segW = innerRect.width / CGFloat(segments)
         let grid = NSBezierPath()
         for i in 1..<segments {
             let x = innerRect.minX + segW * CGFloat(i)
-            grid.move(to: NSPoint(x: x, y: innerRect.minY + 1.2))
-            grid.line(to: NSPoint(x: x, y: innerRect.maxY - 1.2))
+            grid.move(to: NSPoint(x: x, y: innerRect.minY + 1.0))
+            grid.line(to: NSPoint(x: x, y: innerRect.maxY - 1.0))
         }
         NSColor(calibratedWhite: 1.0, alpha: 0.10).setStroke()
         grid.lineWidth = 0.5
         grid.stroke()
-        // 电量色块：按百分比连续填充（红黄绿分级），细腻纵向渐变 + 柔和高光
+        // 电量色块：按百分比连续填充，纵向渐变 + 柔和高光
         let ratio = max(0.0, min(1.0, CGFloat(power.batteryPercent) / 100.0))
-        let filledWidth = ratio > 0 ? max(innerRect.width * ratio, 1.6) : 0.0
+        let filledWidth = ratio > 0 ? max(innerRect.width * ratio, 1.4) : 0.0
         let filledRect = NSRect(x: innerRect.minX, y: innerRect.minY, width: filledWidth, height: innerRect.height)
         if filledRect.width > 0 {
-            let path = NSBezierPath(roundedRect: filledRect, xRadius: 1.6, yRadius: 1.6)
+            let path = NSBezierPath(roundedRect: filledRect, xRadius: 1.4, yRadius: 1.4)
             let top = baseColor.blended(withFraction: 0.38, of: NSColor.white) ?? baseColor
             let bottom = baseColor.withAlphaComponent(0.82)
             if let grad = NSGradient(colors: [top, bottom]) {
@@ -1919,9 +1935,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 baseColor.setFill()
                 path.fill()
             }
-            // 色块右缘柔化：5pt 水平淡出（叠加在空槽底色上），过渡更宽更缓，彻底消除色块右缘硬边界竖线观感
-            if filledRect.width > 5.0 {
-                let fadeW: CGFloat = 5.0
+            // 色块右缘柔化：4pt 水平淡出，消除硬边界竖线观感
+            if filledRect.width > 4.0 {
+                let fadeW: CGFloat = 4.0
                 let fadeRect = NSRect(x: filledRect.maxX - fadeW, y: innerRect.minY, width: fadeW, height: innerRect.height)
                 let fadeGrad = NSGradient(colors: [
                     baseColor.withAlphaComponent(0.85),
@@ -1929,17 +1945,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ])
                 fadeGrad?.draw(in: fadeRect, angle: 0)
             }
-            // 色块顶部柔和高光
-            NSColor(calibratedWhite: 1.0, alpha: 0.26).setStroke()
+            NSColor(calibratedWhite: 1.0, alpha: 0.24).setStroke()
             let fillHi = NSBezierPath()
-            fillHi.move(to: NSPoint(x: filledRect.minX + 1.3, y: filledRect.maxY - 0.9))
-            fillHi.line(to: NSPoint(x: filledRect.maxX - 1.3, y: filledRect.maxY - 0.9))
+            fillHi.move(to: NSPoint(x: filledRect.minX + 1.2, y: filledRect.maxY - 0.8))
+            fillHi.line(to: NSPoint(x: filledRect.maxX - 1.2, y: filledRect.maxY - 0.8))
             fillHi.lineWidth = 0.7
             fillHi.stroke()
         }
-        // 电池内部百分比数字（白色粗体 monospaced，半透明深色阴影，电池内部水平居中；不受色块长度影响）
+        // 电池内部百分比数字（白色粗体 monospaced，半透明深色阴影）
+        // 水平中心跟随填充色块中心（clamp 在壳内安全区），垂直居中于壳中心；用 CoreText ink 边界校正字形可见中心
         let pctText = "\(power.batteryPercent)%" as NSString
-        let numFont = NSFont.monospacedSystemFont(ofSize: 11.0, weight: .bold)
+        let numFont = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .bold)
         let numShadow = NSShadow()
         numShadow.shadowColor = NSColor.black.withAlphaComponent(0.45)
         numShadow.shadowBlurRadius = 1.2
@@ -1950,66 +1966,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .shadow: numShadow
         ]
         let numSize = pctText.size(withAttributes: numAttrs)
-        // 数字水平居中于填充色块中心（文字中心 == 色块中心，随电量比例移动）。
-        // size(withAttributes) 是 typographic 度量，含字面空白，直接用其半宽定位会使字形可见中心偏右；
-        // 用 CoreText 行 ink 边界得到字形可见中心相对绘制起点的偏移，反推绘制起点，保证可见中心 == 色块中心。
-        var numX = filledRect.midX
+        let numTargetX = filledRect.width > 0 ? filledRect.midX : innerRect.midX
+        var numX = numTargetX
         if let ctx = NSGraphicsContext.current {
             let line = CTLineCreateWithAttributedString(NSAttributedString(string: pctText as String, attributes: numAttrs))
             let ink = CTLineGetImageBounds(line, ctx.cgContext)
             if ink.width > 0 {
-                numX = filledRect.midX - ink.midX
+                numX = numTargetX - ink.midX
             } else {
-                numX = filledRect.midX - numSize.width / 2
+                numX = numTargetX - numSize.width / 2
             }
         }
-        numX = max(numX, innerRect.minX + 0.5)
+        // 数字不得越出壳内安全区（左右各留 1pt）
+        numX = max(innerRect.minX + 1.0, min(numX, innerRect.maxX - numSize.width - 1.0))
         let numY = shellRect.midY - numSize.height / 2
         pctText.draw(at: NSPoint(x: numX, y: numY), withAttributes: numAttrs)
-        // 状态符号（电池壳右侧外部、紧贴端子右缘外侧垂直居中；拔掉充电器不显示）
-        // 统一规则：端子描边/圆角使可见右缘相对 terminalRect.maxX 收缩约 1pt（≈52pt）；SF Symbol
-        // 图像左缘到可见字形约 1pt 内边距。以可见端子右缘为基准外移 0.5pt，可见字形与端子约 3px，
-        // 满足 2-4px 间距、紧贴不脱节、不重叠端子/色块。
-        let terminalVisualRight = terminalRect.maxX - 1.0
-        // 充电闪电：放大到 11pt 并外移 4pt，避免被误读为电池内部竖线（8pt 紧贴时主体窄小形似竖线）
-        let symbolGap: CGFloat = 4.0
+        // 状态符号：端子可见右缘外 4.5pt 净距，垂直居中于电池壳中线；拔掉充电器不显示
+        let terminalVisualRight = terminalRect.maxX - 0.9
+        let symbolGap: CGFloat = 6.5
         if power.isCharging && power.externalConnected {
-            // 白色呼吸闪电：透明度 + 尺寸周期脉动（约 1.6 秒一闪），壳右端端子外侧、间距 4pt 远离电池
+            // 白色呼吸闪电：透明度 + 尺寸周期脉动
             let bolt = breathing ? 0.5 + 0.5 * sin((p / 1.6).truncatingRemainder(dividingBy: 1.0) * 2.0 * .pi) : 1.0
-            if let s = Self.tintedSymbol("bolt.fill", pointSize: 11.0, color: NSColor.white.withAlphaComponent(0.70 + 0.30 * bolt)) {
-                let w = s.size.width * (0.92 + 0.08 * bolt)
-                let h = s.size.height * (0.92 + 0.08 * bolt)
-                s.draw(in: NSRect(x: terminalVisualRight + symbolGap, y: 14.5 - h / 2, width: w, height: h))
+            if let s = Self.tintedSymbol("bolt.fill", pointSize: 10.0, color: NSColor.white.withAlphaComponent(0.70 + 0.30 * bolt)) {
+                let w = s.size.width * (0.94 + 0.06 * bolt)
+                let h = s.size.height * (0.94 + 0.06 * bolt)
+                s.draw(in: NSRect(x: terminalVisualRight + symbolGap,
+                                  y: shellRect.midY - h / 2,
+                                  width: w, height: h))
             }
         } else if power.externalConnected {
-            // USB-C 公头插头（苹果式竖放）：竖放扁平圆角矩形主体 + 中央细横线舌片 + 底部中点平滑下垂电线；
-            // 主体几何 7x9pt（圆角 1.5 扁平方正）、舌片 1.5pt 细线、电线 2pt 圆帽，
-            // 深灰 0.35，总视觉高 15pt，与电池端子间距约 5.5pt、整体垂直居中
-            let stroke: CGFloat = 2.0
-            let plugGap: CGFloat = 6.0                       // 插头与电池可见右缘的间距（pt），目标约 4-6pt
-            let bodyW: CGFloat = 7.0                          // 主体几何宽（pt）
-            let bodyH: CGFloat = 9.0                          // 主体几何高（pt）
-            let radius: CGFloat = 1.5                         // 圆角（1.2-1.8 范围，非胶囊全圆）
-            let cx = terminalVisualRight + plugGap + bodyW / 2 + 0.5   // 主体中心 x
-            let cyBody: CGFloat = 16.0                        // 主体几何中心 y（整体 bbox 居中于 14pt）
-            NSColor(white: 0.35, alpha: 1.0).setStroke()      // 深灰描边，浅色菜单栏上清晰柔和不刺眼
-            // 主体：竖放扁平圆角矩形（USB-C 公头轮廓），上下左右对称
+            // USB-C 公头插头（苹果式竖放）：竖放扁平圆角矩形主体 + 中央细横线舌片 + 底部中点下垂电线
+            let stroke: CGFloat = 1.8
+            let plugGap = symbolGap
+            let bodyW: CGFloat = 6.0
+            let bodyH: CGFloat = 8.0
+            let radius: CGFloat = 1.3
+            let cx = terminalVisualRight + plugGap + bodyW / 2
+            let cyBody: CGFloat = shellRect.midY + 0.4
+            NSColor(white: 0.38, alpha: 1.0).setStroke()
             let body = NSBezierPath(roundedRect: NSRect(x: cx - bodyW / 2, y: cyBody - bodyH / 2, width: bodyW, height: bodyH),
                                     xRadius: radius, yRadius: radius)
             body.lineWidth = stroke
             body.lineJoinStyle = .round
             body.stroke()
-            // 舌片：主体中央一条细横线（USB-C 端口识别特征），1.5pt 细线区分层次，精确水平居中、垂直位于主体正中
+            // 舌片：主体中央一条细横线（USB-C 端口识别特征）
             let tongue = NSBezierPath()
-            tongue.move(to: NSPoint(x: cx - 1.75, y: cyBody))
-            tongue.line(to: NSPoint(x: cx + 1.75, y: cyBody))
-            tongue.lineWidth = 1.5
+            tongue.move(to: NSPoint(x: cx - 1.5, y: cyBody))
+            tongue.line(to: NSPoint(x: cx + 1.5, y: cyBody))
+            tongue.lineWidth = 1.4
             tongue.lineCapStyle = .round
             tongue.stroke()
-            // 电线：主体底部中点垂直向下直线短线，长 4.5pt、线宽 2pt 圆帽，无弯曲无水平偏移
+            // 电线：主体底部中点垂直向下，长 3.6pt、圆帽
             let wire = NSBezierPath()
             wire.move(to: NSPoint(x: cx, y: cyBody - bodyH / 2))
-            wire.line(to: NSPoint(x: cx, y: cyBody - bodyH / 2 - 4.5))
+            wire.line(to: NSPoint(x: cx, y: cyBody - bodyH / 2 - 3.6))
             wire.lineWidth = stroke
             wire.lineCapStyle = .round
             wire.stroke()

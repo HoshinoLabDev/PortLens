@@ -34,14 +34,14 @@ struct SettingsView: View {
                         Text("字号缩放")
                         Slider(value: $settings.fontSizeScale, in: 0.8...1.4, step: 0.05)
                         Text(String(format: "%.0f%%", settings.fontSizeScale * 100))
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(.system(size: 10.5, design: .monospaced))
                             .frame(width: 44, alignment: .trailing)
                     }
                     HStack {
                         Text("窗口透明度")
                         Slider(value: $settings.windowOpacity, in: 0.5...1.0, step: 0.05)
                         Text(String(format: "%.0f%%", settings.windowOpacity * 100))
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(.system(size: 10.5, design: .monospaced))
                             .frame(width: 44, alignment: .trailing)
                     }
                 }
@@ -96,14 +96,14 @@ struct SettingsView: View {
                     .frame(width: 32, height: 32)
                     .shadow(color: Theme.accent.opacity(0.35), radius: 4, y: 0)
                 Image(systemName: "gearshape.fill")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text("设置")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                 Text("外观与行为偏好")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
             }
             Spacer()

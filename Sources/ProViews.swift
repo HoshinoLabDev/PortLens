@@ -90,14 +90,14 @@ struct PowerMonitorView: View {
                     .frame(width: 32, height: 32)
                     .shadow(color: Theme.accent.opacity(0.35), radius: 4, y: 0)
                 Image(systemName: "bolt.badge.clock")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text("Power Monitor")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                 Text("实时功率输入遥测")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -150,7 +150,7 @@ struct PowerMonitorView: View {
                     Image(systemName: p.isCharging ? "bolt.fill" : "battery.100")
                         .font(.system(size: 9, weight: .semibold))
                     Text(stateText)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 }
                 .foregroundStyle(stateColor)
                 .padding(.horizontal, 8)
@@ -158,7 +158,7 @@ struct PowerMonitorView: View {
                 .background(Capsule().fill(stateColor.opacity(0.13)))
                 .overlay(Capsule().strokeBorder(stateColor.opacity(0.28), lineWidth: 1))
                 Text("电池 \(p.batteryPercent)%")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
             }
         }
@@ -206,7 +206,7 @@ struct PowerMonitorView: View {
                             .font(.system(size: 7))
                             .foregroundStyle(.green)
                         Text("当前 \(String(format: "%.1f W", last.watts))")
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
                     .padding(.horizontal, 8)
@@ -292,7 +292,7 @@ struct PowerMonitorView: View {
                     .foregroundStyle(.green.opacity(0.7))
             }
             Text("正在等待采样…每 2 秒一个样本")
-                .font(.system(size: 11))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -306,7 +306,7 @@ struct PowerMonitorView: View {
             stat(title: "采样间隔", value: "2 s")
             Spacer()
             Text("来源：\(powerStore.latest?.source == "input" ? "充电输入 (IPDInputPower)" : "电池总线")")
-                .font(.system(size: 10))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.tertiary)
         }
         .padding(Theme.spacingM)
@@ -371,20 +371,20 @@ struct NegotiationDiagnosticsView: View {
                     .frame(width: 32, height: 32)
                     .shadow(color: Theme.accent.opacity(0.35), radius: 4, y: 0)
                 Image(systemName: "point.3.connected.trianglepath.dotted")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text("协商诊断")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                 Text("对比 Mac 端口 / 线缆 / 设备各自支持能力与实际协商结果，弱环节高亮。")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
             }
             Spacer()
             if !diagnostics.isEmpty {
                 Text("\(diagnostics.count) 个端口")
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(Capsule().fill(Theme.accent.opacity(0.12)))
@@ -427,7 +427,7 @@ struct NegotiationDiagnosticsView: View {
                     .font(.system(size: 15))
                     .foregroundStyle(weak == nil ? .green : .orange)
                 Text(result.portLabel)
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                 Spacer()
                 if result.portLabel.contains("MagSafe") {
                     statusPill("充电专用", color: .secondary, icon: "bolt.fill")
@@ -438,7 +438,7 @@ struct NegotiationDiagnosticsView: View {
                 }
             }
             Text(result.summary)
-                .font(.system(size: 11))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
 
             VStack(spacing: 8) {
@@ -492,7 +492,7 @@ struct NegotiationDiagnosticsView: View {
             Image(systemName: icon)
                 .font(.system(size: 9, weight: .semibold))
             Text(text)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
         }
         .foregroundStyle(color)
         .padding(.horizontal, 8)
@@ -529,7 +529,7 @@ private struct DiagnosticComparisonBar: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(label)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                     .frame(width: 58, alignment: .leading)
                 Text("支持 \(String(format: "%.1f Gbps", supports))")
                     .font(.system(size: 9, design: .monospaced))
@@ -540,7 +540,7 @@ private struct DiagnosticComparisonBar: View {
                     .foregroundStyle(isWeak ? Color.orange : Color.green)
                 if isWeak {
                     Text("瓶颈")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
@@ -599,19 +599,19 @@ struct SavedCablesView: View {
                     .frame(width: 32, height: 32)
                     .shadow(color: Theme.accent.opacity(0.35), radius: 4, y: 0)
                 Image(systemName: "cable.connector")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text("线缆历史")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                 Text("插入带 e-marker 的线缆后自动建立指纹记录")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
             }
             Spacer()
             Text("\(cableStore.cables.count) 条记录")
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
                 .background(Capsule().fill(Theme.accent.opacity(0.12)))
@@ -621,7 +621,7 @@ struct SavedCablesView: View {
                 cableStore.resetAll()
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 11))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.red.opacity(0.7))
             }
             .buttonStyle(.plain)
@@ -654,7 +654,7 @@ struct CableRowView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: cable.hasAnomalies ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(cable.hasAnomalies ? .orange : .green)
                 if store.editingRowID == cable.id {
                     TextField("线缆名称", text: Binding(get: { store.draftName }, set: { store.draftName = $0 }))
@@ -667,7 +667,7 @@ struct CableRowView: View {
                         .controlSize(.small)
                 } else {
                     Text(cable.name)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                     Button {
                         store.draftName = cable.name
                         store.editingRowID = cable.id
@@ -680,13 +680,13 @@ struct CableRowView: View {
                 }
                 Spacer()
                 Text(cable.speedLabel)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 10.5, weight: .semibold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Color.purple.opacity(0.14)))
                     .foregroundStyle(.purple)
                 Text("\(cable.maxWatts)W")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 10.5, weight: .semibold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Color.green.opacity(0.14)))
@@ -709,13 +709,13 @@ struct CableRowView: View {
                     store.remove(cable.id)
                 } label: {
                     Image(systemName: "trash")
-                        .font(.system(size: 10))
+                        .font(.system(size: 10.5))
                         .foregroundStyle(.red.opacity(0.7))
                 }
                 .buttonStyle(.plain)
                 .help("删除记录")
             }
-            .font(.system(size: 10))
+            .font(.system(size: 10.5))
             .foregroundStyle(.secondary)
 
             if store.expandedRowID == cable.id {
@@ -723,7 +723,7 @@ struct CableRowView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     if let vid = cable.vendorVID {
                         Text("厂商：\(CableVendorDB.displayName(for: vid))")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 10.5, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
                     Text("指纹：\(cable.fingerprint)")
@@ -732,7 +732,7 @@ struct CableRowView: View {
                         .textSelection(.enabled)
                     if cable.usageTimeline.isEmpty == false {
                         Text("使用时间线（最近 5 次）")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(size: 10.5, weight: .semibold))
                             .foregroundStyle(.secondary)
                         ForEach(cable.usageTimeline.suffix(5).reversed()) { ev in
                             HStack(spacing: 6) {
@@ -748,12 +748,12 @@ struct CableRowView: View {
                     }
                     if !cable.anomalies.isEmpty {
                         Text("异常记录")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(size: 10.5, weight: .semibold))
                             .foregroundStyle(.orange)
                         ForEach(cable.anomalies.suffix(5).reversed()) { a in
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 8))
+                                    .font(.system(size: 9))
                                     .foregroundStyle(.orange)
                                 Text(a.timestamp.formatted(date: .abbreviated, time: .shortened))
                                 Text("· \(a.kind)")
@@ -810,14 +810,14 @@ struct PinDiagramView: View {
                         .frame(width: 32, height: 32)
                         .shadow(color: Theme.accent.opacity(0.35), radius: 4, y: 0)
                     Image(systemName: "cpu")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(.white)
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     Text("引脚图")
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                     Text(data.subtitle)
-                        .font(.system(size: 10))
+                        .font(.system(size: 10.5))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -845,11 +845,11 @@ struct PinDiagramView: View {
             ForEach(data.rows.filter { $0.side == side }) { pin in
                 HStack(spacing: 8) {
                     Text("\(pin.side)\(pin.number)")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
                         .frame(width: 26, alignment: .trailing)
                         .foregroundStyle(groupColor)
                     Text(pin.name)
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
                         .frame(width: 70, alignment: .leading)
                     Text(pin.group)
                         .font(.system(size: 9))
@@ -886,7 +886,7 @@ struct PinDiagramView: View {
             legendItem("SuperSpeed", color: .green)
             legendItem("USB 2.0 (DP/DN)", color: .orange)
         }
-        .font(.system(size: 10))
+        .font(.system(size: 10.5))
     }
 
     private func legendItem(_ text: String, color: Color) -> some View {
@@ -905,10 +905,10 @@ struct LiquidDetectionBadge: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: state.present ? "drop.triangle.fill" : "drop")
-                .font(.system(size: 10))
+                .font(.system(size: 10.5))
                 .foregroundStyle(state.present ? .orange : .green)
             Text(state.present ? "液体检测：已检测到接触/污染" : "液体检测：正常")
-                .font(.system(size: 10))
+                .font(.system(size: 10.5))
                 .foregroundStyle(state.present ? .orange : .secondary)
             if state.irqCount > 0 {
                 Text("IRQ \(state.irqCount)")
@@ -962,14 +962,14 @@ struct DisplayDiagnosticsView: View {
                     .frame(width: 32, height: 32)
                     .shadow(color: Theme.accent.opacity(0.35), radius: 4, y: 0)
                 Image(systemName: "display")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text("显示诊断")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                 Text("读取显示器实时显示模式，与 DisplayPort 链路承载能力对比，解释分辨率/刷新率受限原因。")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
             }
         }
@@ -993,10 +993,10 @@ struct DisplayDiagnosticsView: View {
     private var adapterBanner: some View {
         HStack(spacing: 6) {
             Image(systemName: "cable.connector")
-                .font(.system(size: 10))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.orange)
             Text("链路中发现可能的转接器/扩展坞：\(adapters.joined(separator: " · "))")
-                .font(.system(size: 10))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.orange)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1017,25 +1017,25 @@ struct DisplayDiagnosticsView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "display")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(Theme.accent)
                 Text(d.name)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
                 if d.is5K || d.is6K {
                     Text(d.sizeLabel)
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .font(.system(size: 10.5, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(LinearGradient(colors: [.blue, .cyan], startPoint: .leading, endPoint: .trailing)))
                 } else {
                     Text(d.sizeLabel)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                         .foregroundStyle(.blue)
                 }
                 Spacer()
                 Text(String(format: "%.1f Hz", d.refreshRate))
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
@@ -1044,13 +1044,13 @@ struct DisplayDiagnosticsView: View {
             }
 
             Text(d.resolutionText)
-                .font(.system(size: 11))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
 
             VStack(spacing: 4) {
                 HStack(spacing: 6) {
                     Text("模式带宽")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.system(size: 10.5, weight: .medium))
                         .foregroundStyle(.secondary)
                     Text(String(format: "%.1f Gbps", d.bandwidthGbps))
                         .font(.system(size: 9, design: .monospaced))
@@ -1075,21 +1075,21 @@ struct DisplayDiagnosticsView: View {
 
             HStack(spacing: 6) {
                 Image(systemName: d.dscRequired ? "waveform.badge.minus" : "checkmark.seal.fill")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(d.dscRequired ? .purple : .green)
                 Text("DSC 压缩：\(d.dscText)")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 10.5, weight: .medium))
                     .foregroundStyle(d.dscRequired ? .purple : .green)
             }
 
             Text(d.verdict)
-                .font(.system(size: 11))
+                .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if !d.adapters.isEmpty {
                 Text("链路转接：\(d.adapters.joined(separator: " · "))")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.orange)
             }
         }
