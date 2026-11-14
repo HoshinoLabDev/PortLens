@@ -114,68 +114,38 @@ enum ProIntegration {
     }
 }
 
-// MARK: - 端口卡 Pro 行（PD 契约检查 + Saved Cable 判定）
+// MARK: - 端口卡 Pro 状态（PD 契约判定）
 
-struct PortCardProRow: View {
-    let card: PortCardModel
-    let savedCableName: String?
-    let contract: PDContractInfo
-    @ObservedObject var monitor: USBMonitor
-    @ObservedObject var cableStore: CableHistoryStore
+/// 端口卡的 PD 合约判定结果：作为端口卡片内容区的一行渲染，不再脱离卡片独立成段
+struct PDCardStatus: Equatable {
+    var matches: Bool
+    var text: String
+    /// 活跃 PD 合约位置（0 = 无活跃合约）
+    var activePosition: Int = 0
+    /// 协商功率（W）
+    var negotiatedWatts: Double?
+}
 
-    var body: some View {
-        if card.isConnected {
-            VStack(alignment: .leading, spacing: 4) {
-                Divider().opacity(0.4)
-                HStack(spacing: 6) {
-                    Image(systemName: verdict.matches ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(verdict.matches ? .green : .orange)
-                    Text(verdict.text)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "bookmark")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.purple)
-                    if let name = savedCableName {
-                        Text("已保存线缆：\(name)")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.purple)
-                    } else {
-                        Text("未保存线缆")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                        Button("保存") {
-                            ProIntegration.saveCurrentCable(for: card, monitor: monitor, store: cableStore)
-                        }
-                        .buttonStyle(.borderless)
-                        .controlSize(.mini)
-                        .foregroundStyle(.blue)
-                    }
-                    Spacer()
-                    if contract.activePosition > 0, let w = contract.negotiatedWatts {
-                        Text("PDO #\(contract.activePosition) · \(Int(w))W")
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 8)
-        }
-    }
-
-    private var verdict: (matches: Bool, text: String) {
+extension ProIntegration {
+    /// 计算端口卡的 PD 合约判定（协商档位 vs 适配器额定 vs 线缆 e-marker 额定）
+    static func pdStatus(for card: PortCardModel, monitor: USBMonitor) -> PDCardStatus {
+        let contract = monitor.readPDContract(
+            portIndex: card.isMagSafe ? nil : (card.portNumber ?? card.portIndex),
+            isMagSafe: card.isMagSafe
+        )
         let cableMaxWatts = monitor.eMarkerDetail(portIndex: card.portNumber ?? card.portIndex)?.maxWatts
-        return contract.capabilityVerdict(
+        let verdict = contract.capabilityVerdict(
             adapterWatts: monitor.power.adapterWatts,
             chargingWatts: monitor.power.wattsNow,
             isCharging: monitor.power.isCharging,
             fullyCharged: monitor.power.fullyCharged,
             cableMaxWatts: cableMaxWatts
+        )
+        return PDCardStatus(
+            matches: verdict.matches,
+            text: verdict.text,
+            activePosition: contract.activePosition,
+            negotiatedWatts: contract.negotiatedWatts
         )
     }
 }

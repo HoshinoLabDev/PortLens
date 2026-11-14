@@ -291,31 +291,21 @@ struct ContentView: View {
                 ScrollView {
                     LazyVStack(spacing: Theme.spacingM) {
                         ForEach(Array(visiblePorts.enumerated()), id: \.element.id) { index, card in
-                            VStack(spacing: Theme.spacingS) {
-                                PortCardView(
-                                    card: card,
-                                    savedCableName: ProIntegration.savedCableName(for: card, monitor: monitor, store: cableStore),
-                                    liquidState: liquidState,
-                                    health: ProIntegration.healthForCard(card, cache: healthCache, cardCount: visiblePorts.count),
-                                    resistance: resistance,
-                                    resistanceReason: resistanceReason,
-                                    showTechDetails: settings.showTechDetails,
-                                    energyFlowEnabled: settings.energyFlowEnabled,
-                                    scanEffectEnabled: settings.scanEffectEnabled,
-                                    powerWatts: monitor.power.wattsNow,
-                                    plugEvent: monitor.lastPlugEvent
-                                )
-                                PortCardProRow(
-                                    card: card,
-                                    savedCableName: ProIntegration.savedCableName(for: card, monitor: monitor, store: cableStore),
-                                    contract: monitor.readPDContract(
-                                        portIndex: card.isMagSafe ? nil : (card.portNumber ?? card.portIndex),
-                                        isMagSafe: card.isMagSafe
-                                    ),
-                                    monitor: monitor,
-                                    cableStore: cableStore
-                                )
-                            }
+                            PortCardView(
+                                card: card,
+                                savedCableName: ProIntegration.savedCableName(for: card, monitor: monitor, store: cableStore),
+                                liquidState: liquidState,
+                                health: ProIntegration.healthForCard(card, cache: healthCache, cardCount: visiblePorts.count),
+                                resistance: resistance,
+                                resistanceReason: resistanceReason,
+                                showTechDetails: settings.showTechDetails,
+                                energyFlowEnabled: settings.energyFlowEnabled,
+                                scanEffectEnabled: settings.scanEffectEnabled,
+                                powerWatts: monitor.power.wattsNow,
+                                plugEvent: monitor.lastPlugEvent,
+                                pdStatus: ProIntegration.pdStatus(for: card, monitor: monitor),
+                                onSaveCable: { ProIntegration.saveCurrentCable(for: card, monitor: monitor, store: cableStore) }
+                            )
                         }
                     }
                     .padding(Theme.spacingL)
@@ -710,6 +700,10 @@ struct PortCardView: View {
     var scanEffectEnabled: Bool = true
     var powerWatts: Double = 0
     var plugEvent: USBMonitor.PlugEvent? = nil
+    /// PD 合约判定（作为卡片内容区一行，不再作为卡片外独立区块）
+    var pdStatus: PDCardStatus? = nil
+    /// 保存当前线缆的回调（无线缆记录时卡片内显示"保存"入口）
+    var onSaveCable: (() -> Void)? = nil
 
     @State private var hovering = false
     @State private var scanStart: Date? = nil
@@ -804,9 +798,11 @@ struct PortCardView: View {
                         .lineLimit(1)
                     statusChip
                 }
-                Text(subtitle)
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer(minLength: 4)
             Text(portLabel)
@@ -840,9 +836,8 @@ struct PortCardView: View {
     }
 
     private var subtitle: String {
-        if let banner = card.chargingBanner {
-            return banner
-        }
+        // 充电状态已由卡片内充电横幅承担，头部副行不再复述同一句话
+        if card.chargingBanner != nil { return "" }
         if card.isConnected {
             let n = card.connectedDevices.isEmpty ? card.devices.count : card.connectedDevices.count
             return "已连接 \(n) 个设备"
@@ -855,6 +850,10 @@ struct PortCardView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let banner = card.chargingBanner {
                 chargingBannerView(banner, subtitle: card.chargingSub)
+            }
+            // PD 合约判定：紧邻充电状态行，作为本端口信息区内的一行（不再悬在卡片外）
+            if card.isConnected, let verdict = pdStatus {
+                pdVerdictRow(verdict)
             }
             if let dataLine = card.dataLine {
                 row(icon: "gauge.with.dots.needle.50percent", text: dataLine, color: Theme.tint(card.tint))
@@ -895,8 +894,8 @@ struct PortCardView: View {
             if let fault = card.faultText {
                 row(icon: "exclamationmark.triangle.fill", text: fault, color: Theme.warn)
             }
-            if let name = savedCableName {
-                row(icon: "bookmark.fill", text: "已识别线缆：\(name)", color: .secondary)
+            if card.isConnected {
+                savedCableRow
             }
             if liquidState != .idle, liquidState != .notSupported {
                 row(icon: liquidIcon, text: liquidText, color: liquidColor)
@@ -1044,6 +1043,54 @@ struct PortCardView: View {
             }
             .padding(.leading, 22)
         )
+    }
+
+    /// PD 合约判定行：与卡片内其他信息行同列对齐（图标 16pt 固定列 + 文本）
+    private func pdVerdictRow(_ verdict: PDCardStatus) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: verdict.matches ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(verdict.matches ? Theme.ok : Theme.warn)
+                .frame(width: 16)
+            Text(verdict.text)
+                .font(.system(size: 10.5))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if verdict.activePosition > 0, let watts = verdict.negotiatedWatts {
+                Text("PDO #\(verdict.activePosition) · \(Int(watts))W")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .fixedSize()
+            }
+        }
+    }
+
+    /// Saved Cable 行：已保存显示线缆名，未保存时在卡片内直接给出保存入口
+    private var savedCableRow: some View {
+        HStack(spacing: 6) {
+            Image(systemName: savedCableName == nil ? "bookmark" : "bookmark.fill")
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(savedCableName == nil ? Color.secondary : Color.purple)
+                .frame(width: 16)
+            if let name = savedCableName {
+                Text("已保存线缆：\(name)")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.purple)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text("未保存线缆")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                if let save = onSaveCable {
+                    Button("保存") { save() }
+                        .buttonStyle(.borderless)
+                        .controlSize(.mini)
+                        .foregroundStyle(.blue)
+                }
+                Spacer(minLength: 0)
+            }
+        }
     }
 
     private func row(icon: String, text: String, color: Color) -> some View {
@@ -1503,7 +1550,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .dynamic:
                     button.image = Self.dynamicStatusImage(power: monitor.power)
                 case .wideBar:
-                    button.image = Self.wideBarStatusImage(power: monitor.power)
+                    button.image = Self.wideBarStatusImage(power: monitor.power, appearance: button.effectiveAppearance)
                 case .simple:
                     break
                 }
@@ -1546,8 +1593,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 power: monitor.power,
                 phase: phase,
                 rainbow: rainbow,
-                scale: punchScale()
+                scale: punchScale(),
+                appearance: button.effectiveAppearance
             )
+            // 宽体模式始终 imageOnly，避免 title 行高撑高图标导致底部裁切
+            button.imagePosition = .imageOnly
+            applyDynamicTitle(monitor: monitor)
+            return
         default:
             button.image = Self.breathingDynamicStatusImage(
                 power: monitor.power,
@@ -1846,14 +1898,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return image
     }
 
-    /// 宽体色块模式图标（贴合 macOS 菜单栏可用高度 22pt，避免被系统等比缩压造成元素挤压）
-    /// 画布 62x22pt：左侧宽电池壳 + 内部色块比例（红黄绿分级、纵向渐变 + 柔和高光、每 10% 淡分段格线），
-    /// 壳内百分比数字恒居中于电池壳（CoreText ink 边界对齐内槽中线），壳右端端子外侧留 4.5pt 净距再放状态符号，
-    /// 保证数字、闪电、插头三者互不接触；充电=白色呼吸闪电 / 已接入未充电=USB-C 公头插头。
-    /// 跃迁放大 scale 在绘制时 clamp 至 1.15，确保放大瞬间内容不溢出 22pt 画布。
-    /// phase 传 nil 时输出静态帧（无光晕、符号静止）；传 Double 时启用外圈分级光晕呼吸与闪电脉动。
-    static func wideBarStatusImage(power: PowerState, phase: Double? = nil, rainbow: Bool = false, scale: CGFloat = 1.0) -> NSImage? {
-        // 菜单栏可用高度 22pt：画布高度严格等于该值，宽度按内容排布（壳 39 + 端子 2 + 间距 4.5 + 插头 6.8 + 留白）
+    /// 宽体电量图标（贴合 macOS 菜单栏可用高度 22pt，避免被系统等比缩压造成元素挤压）
+    /// 视觉语言对齐 Apple 原生菜单栏图标：单色描边随外观自适应（浅色=黑 / 深色=白）、小圆角电池壳、
+    /// 语义色纯色填充（绿 / 黄 / 红）、无渐变、无高光、无分段格线；壳内百分比数字恒居中于内槽。
+    /// 状态符号改用 SF Symbols：充电=绿色闪电（轻微脉动）、已接入未充电=电源插头；
+    /// 呼吸动效收敛为填充透明度脉动，不再绘制外圈光环。画布 62x22pt，内容互不接触。
+    static func wideBarStatusImage(power: PowerState, phase: Double? = nil, rainbow: Bool = false, scale: CGFloat = 1.0, appearance: NSAppearance? = nil) -> NSImage? {
+        // 画布高度严格等于菜单栏可用高度 22pt；宽度按内容排布（壳 39 + 端子 2.1 + 间距 6.5 + 符号 8 + 留白）
         let size = NSSize(width: 62, height: 22)
         let image = NSImage(size: size)
         image.lockFocus()
@@ -1870,111 +1921,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let breathing = phase != nil
         let p = phase ?? 0.0
         let breathe = breathing ? 0.5 + 0.5 * sin((p / 2.0).truncatingRemainder(dividingBy: 1.0) * 2.0 * .pi) : 0.5
-        let baseColor: NSColor
+        // 单色墨水：跟随系统外观取黑/白，保证在任意菜单栏底色上都有原生对比度
+        // 用状态栏按钮自身的 effectiveAppearance（随菜单栏明暗自动切换），而非 App 外观：
+        // 菜单栏可能因壁纸明暗与 App 外观不一致，取错会导致描边与底色同色而"消失"
+        let resolvedAppearance = appearance ?? NSApp.effectiveAppearance
+        let isDark = resolvedAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let ink = isDark ? NSColor.white : NSColor.black
+        // 语义色：仅使用系统标准色，不用渐变，信息仍按电量分级传达
+        let levelColor: NSColor
         if rainbow {
             let hue = (p * 0.45).truncatingRemainder(dividingBy: 1.0)
-            baseColor = NSColor(calibratedHue: hue, saturation: 0.85, brightness: 1.0, alpha: 1.0)
+            levelColor = NSColor(calibratedHue: hue, saturation: 0.85, brightness: 1.0, alpha: 1.0)
+        } else if power.isCharging && power.externalConnected {
+            levelColor = NSColor.systemGreen
+        } else if power.batteryPercent <= 10 {
+            levelColor = NSColor.systemRed
+        } else if power.batteryPercent <= 20 {
+            levelColor = NSColor.systemYellow
         } else {
-            baseColor = BatteryLevelColor.nsColor(for: power.batteryPercent)
+            levelColor = NSColor.systemGreen
         }
-        // 外圈光晕（两层圆环呼吸，仅呼吸模式绘制；半径收在 22pt 画布内）
-        if breathing {
-            for layer in 0..<2 {
-                let r = 5.2 + breathe * 2.2 + Double(layer) * 2.9
-                let alpha = (0.20 + breathe * 0.30) * (layer == 0 ? 1.0 : 0.5)
-                let ring = NSBezierPath(ovalIn: NSRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2))
-                baseColor.withAlphaComponent(alpha).setStroke()
-                ring.lineWidth = 1.2
-                ring.stroke()
-            }
-        }
-        // 电池壳（宽体圆角矩形，玻璃感：深色半透明底 + 细描边 + 顶部柔和高光），垂直居中于 22pt 画布
-        let shellRect = NSRect(x: 3.5, y: 3.0, width: 39.0, height: 16.0)
-        let shell = NSBezierPath(roundedRect: shellRect, xRadius: 3.6, yRadius: 3.6)
-        NSColor(calibratedWhite: 0.12, alpha: 0.55).setFill()
+        // 电池壳：小圆角 + 1pt 细描边 + 极淡底，形状语言对齐系统电池图标
+        let shellRect = NSRect(x: 3.0, y: 3.0, width: 39.0, height: 16.0)
+        let shell = NSBezierPath(roundedRect: shellRect, xRadius: 2.6, yRadius: 2.6)
+        ink.withAlphaComponent(0.10).setFill()
         shell.fill()
-        NSColor(calibratedWhite: 0.55, alpha: 0.5).setStroke()
+        ink.withAlphaComponent(0.72).setStroke()
         shell.lineWidth = 1.0
         shell.stroke()
-        NSColor(calibratedWhite: 1.0, alpha: 0.15).setStroke()
-        let shellHi = NSBezierPath()
-        shellHi.move(to: NSPoint(x: shellRect.minX + 2.2, y: shellRect.maxY - 1.2))
-        shellHi.line(to: NSPoint(x: shellRect.maxX - 2.2, y: shellRect.maxY - 1.2))
-        shellHi.lineWidth = 0.8
-        shellHi.stroke()
-        // 正极端子（右侧凸头，同色系）
-        let terminalRect = NSRect(x: 42.9, y: 7.0, width: 2.0, height: 8.0)
+        // 正极端子（右侧凸头，实心同色，收窄至 2.1pt 以贴近原生比例）
+        let terminalRect = NSRect(x: shellRect.maxX + 0.9, y: shellRect.midY - 3.2, width: 2.1, height: 6.4)
         let terminal = NSBezierPath(roundedRect: terminalRect, xRadius: 0.9, yRadius: 0.9)
-        NSColor(calibratedWhite: 0.12, alpha: 0.55).setFill()
+        ink.withAlphaComponent(0.72).setFill()
         terminal.fill()
-        NSColor(calibratedWhite: 0.55, alpha: 0.5).setStroke()
-        terminal.lineWidth = 1.0
-        terminal.stroke()
-        // 内部填充区（壳内缩 2.2pt）
-        let innerRect = NSRect(x: shellRect.minX + 2.2, y: shellRect.minY + 2.2,
-                               width: shellRect.width - 4.4, height: shellRect.height - 4.4)
-        // 空槽底色：整壳铺一层电量等级色 22% 基底，缩小色块与空槽亮度差，避免色块右缘被误读为竖线
-        let slot = NSBezierPath(roundedRect: innerRect, xRadius: 1.7, yRadius: 1.7)
-        baseColor.withAlphaComponent(0.22).setFill()
-        slot.fill()
-        // 每 10% 淡分段格线
-        let segments = 10
-        let segW = innerRect.width / CGFloat(segments)
-        let grid = NSBezierPath()
-        for i in 1..<segments {
-            let x = innerRect.minX + segW * CGFloat(i)
-            grid.move(to: NSPoint(x: x, y: innerRect.minY + 1.0))
-            grid.line(to: NSPoint(x: x, y: innerRect.maxY - 1.0))
-        }
-        NSColor(calibratedWhite: 1.0, alpha: 0.10).setStroke()
-        grid.lineWidth = 0.5
-        grid.stroke()
-        // 电量色块：按百分比连续填充，纵向渐变 + 柔和高光
+        // 内槽：壳内缩 2.0pt，仅作几何基准，不铺底、不画格线
+        let innerRect = NSRect(x: shellRect.minX + 2.0, y: shellRect.minY + 2.0,
+                               width: shellRect.width - 4.0, height: shellRect.height - 4.0)
+        // 电量色块：纯色连续填充，透明度参与呼吸脉动
         let ratio = max(0.0, min(1.0, CGFloat(power.batteryPercent) / 100.0))
-        let filledWidth = ratio > 0 ? max(innerRect.width * ratio, 1.4) : 0.0
-        let filledRect = NSRect(x: innerRect.minX, y: innerRect.minY, width: filledWidth, height: innerRect.height)
-        if filledRect.width > 0 {
-            let path = NSBezierPath(roundedRect: filledRect, xRadius: 1.7, yRadius: 1.7)
-            let top = baseColor.blended(withFraction: 0.38, of: NSColor.white) ?? baseColor
-            let bottom = baseColor.withAlphaComponent(0.82)
-            if let grad = NSGradient(colors: [top, bottom]) {
-                grad.draw(in: path, angle: 90)
-            } else {
-                baseColor.setFill()
-                path.fill()
-            }
-            // 色块右缘柔化：4pt 水平淡出，消除硬边界竖线观感
-            if filledRect.width > 4.0 {
-                let fadeW: CGFloat = 4.0
-                let fadeRect = NSRect(x: filledRect.maxX - fadeW, y: innerRect.minY, width: fadeW, height: innerRect.height)
-                let fadeGrad = NSGradient(colors: [
-                    baseColor.withAlphaComponent(0.85),
-                    baseColor.withAlphaComponent(0.10)
-                ])
-                fadeGrad?.draw(in: fadeRect, angle: 0)
-            }
-            NSColor(calibratedWhite: 1.0, alpha: 0.24).setStroke()
-            let fillHi = NSBezierPath()
-            fillHi.move(to: NSPoint(x: filledRect.minX + 1.2, y: filledRect.maxY - 0.8))
-            fillHi.line(to: NSPoint(x: filledRect.maxX - 1.2, y: filledRect.maxY - 0.8))
-            fillHi.lineWidth = 0.7
-            fillHi.stroke()
+        let filledWidth = ratio > 0 ? max(innerRect.width * ratio, 1.6) : 0.0
+        if filledWidth > 0 {
+            let filledRect = NSRect(x: innerRect.minX, y: innerRect.minY, width: filledWidth, height: innerRect.height)
+            let path = NSBezierPath(roundedRect: filledRect, xRadius: 1.3, yRadius: 1.3)
+            levelColor.withAlphaComponent(breathing ? 0.86 + 0.14 * breathe : 1.0).setFill()
+            path.fill()
         }
-        // 电池内部百分比数字（白色粗体 monospaced，半透明深色阴影）
-        // 水平中心跟随填充色块中心（clamp 在壳内安全区），垂直居中于壳中心；用 CoreText ink 边界校正字形可见中心
+        // 电池内部百分比数字（monospaced DIGIT 数字、随外观取黑/白、无阴影），水平居中于内槽中线
         let pctText = "\(power.batteryPercent)%" as NSString
-        let numFont = NSFont.monospacedSystemFont(ofSize: 12.0, weight: .bold)
-        let numShadow = NSShadow()
-        numShadow.shadowColor = NSColor.black.withAlphaComponent(0.45)
-        numShadow.shadowBlurRadius = 1.2
-        numShadow.shadowOffset = NSSize(width: 0, height: -0.5)
+        let numFont = NSFont.monospacedDigitSystemFont(ofSize: 11.0, weight: .semibold)
         let numAttrs: [NSAttributedString.Key: Any] = [
             .font: numFont,
-            .foregroundColor: NSColor.white,
-            .shadow: numShadow
+            .foregroundColor: ink
         ]
         let numSize = pctText.size(withAttributes: numAttrs)
-        // 水平锚点固定为电池内槽中线：无论电量多少，数字恒在电池内部左右居中，不随填充色块漂移
         let numTargetX = innerRect.midX
         // inkLeft / inkWidth 为可见字形相对绘制起点的墨迹范围，用于精确居中与溢出兜底
         var inkLeft = -numSize.width / 2
@@ -1982,60 +1981,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         var numX = numTargetX - numSize.width / 2
         if let ctx = NSGraphicsContext.current {
             let line = CTLineCreateWithAttributedString(NSAttributedString(string: pctText as String, attributes: numAttrs))
-            let ink = CTLineGetImageBounds(line, ctx.cgContext)
-            if ink.width > 0 {
-                inkLeft = ink.minX
-                inkWidth = ink.width
-                numX = numTargetX - ink.midX
+            let inkBounds = CTLineGetImageBounds(line, ctx.cgContext)
+            if inkBounds.width > 0 {
+                inkLeft = inkBounds.minX
+                inkWidth = inkBounds.width
+                numX = numTargetX - inkBounds.midX
             }
         }
-        // 仅在墨迹将越出内槽时贴边收敛（正常字号下不触发，居中优先）
         numX = max(innerRect.minX + 0.6 - inkLeft,
                    min(numX, innerRect.maxX - 0.6 - (inkLeft + inkWidth)))
         let numY = shellRect.midY - numSize.height / 2
         pctText.draw(at: NSPoint(x: numX, y: numY), withAttributes: numAttrs)
-        // 状态符号：端子可见右缘外 4.5pt 净距，垂直居中于电池壳中线；拔掉充电器不显示
-        let terminalVisualRight = terminalRect.maxX - 0.9
+        // 状态符号：端子右缘外 6.5pt 净距，垂直居中于电池壳中线；拔掉充电器不显示
+        let terminalVisualRight = terminalRect.maxX
         let symbolGap: CGFloat = 6.5
         if power.isCharging && power.externalConnected {
-            // 白色呼吸闪电：透明度 + 尺寸周期脉动
+            // 绿色闪电（SF Symbols，轻微脉动，不再放大收缩）
             let bolt = breathing ? 0.5 + 0.5 * sin((p / 1.6).truncatingRemainder(dividingBy: 1.0) * 2.0 * .pi) : 1.0
-            if let s = Self.tintedSymbol("bolt.fill", pointSize: 10.0, color: NSColor.white.withAlphaComponent(0.70 + 0.30 * bolt)) {
-                let w = s.size.width * (0.94 + 0.06 * bolt)
-                let h = s.size.height * (0.94 + 0.06 * bolt)
+            if let s = Self.tintedSymbol("bolt.fill", pointSize: 10.0,
+                                         color: NSColor.systemGreen.withAlphaComponent(0.80 + 0.20 * bolt)) {
                 s.draw(in: NSRect(x: terminalVisualRight + symbolGap,
-                                  y: shellRect.midY - h / 2,
-                                  width: w, height: h))
+                                  y: shellRect.midY - s.size.height / 2,
+                                  width: s.size.width, height: s.size.height))
             }
         } else if power.externalConnected {
-            // USB-C 公头插头（苹果式竖放）：竖放扁平圆角矩形主体 + 中央细横线舌片 + 底部中点下垂电线
-            let stroke: CGFloat = 1.8
-            let plugGap = symbolGap
-            let bodyW: CGFloat = 6.0
-            let bodyH: CGFloat = 9.0
-            let radius: CGFloat = 1.3
-            let cx = terminalVisualRight + plugGap + bodyW / 2
-            let cyBody: CGFloat = shellRect.midY + 0.4
-            NSColor(white: 0.38, alpha: 1.0).setStroke()
-            let body = NSBezierPath(roundedRect: NSRect(x: cx - bodyW / 2, y: cyBody - bodyH / 2, width: bodyW, height: bodyH),
-                                    xRadius: radius, yRadius: radius)
-            body.lineWidth = stroke
-            body.lineJoinStyle = .round
-            body.stroke()
-            // 舌片：主体中央一条细横线（USB-C 端口识别特征）
-            let tongue = NSBezierPath()
-            tongue.move(to: NSPoint(x: cx - 1.5, y: cyBody))
-            tongue.line(to: NSPoint(x: cx + 1.5, y: cyBody))
-            tongue.lineWidth = 1.4
-            tongue.lineCapStyle = .round
-            tongue.stroke()
-            // 电线：主体底部中点垂直向下，长 3.6pt、圆帽
-            let wire = NSBezierPath()
-            wire.move(to: NSPoint(x: cx, y: cyBody - bodyH / 2))
-            wire.line(to: NSPoint(x: cx, y: cyBody - bodyH / 2 - 3.6))
-            wire.lineWidth = stroke
-            wire.lineCapStyle = .round
-            wire.stroke()
+            // USB-C 插头侧视（SF Symbols cable.connector，单色线性，比 powerplug.fill 更接近系统图标笔触）
+            if let s = Self.tintedSymbol("cable.connector", pointSize: 11.0,
+                                         color: ink.withAlphaComponent(0.85)) {
+                s.draw(in: NSRect(x: terminalVisualRight + symbolGap,
+                                  y: shellRect.midY - s.size.height / 2,
+                                  width: s.size.width, height: s.size.height))
+            }
         }
         image.unlockFocus()
         return image
